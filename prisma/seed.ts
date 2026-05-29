@@ -185,6 +185,143 @@ async function main() {
   });
   console.log("✅ Demo requests created");
 
+  // ─── Phase 2: WhatsApp Assistant ─────────────────────────────────
+  await prisma.whatsAppAssistant.upsert({
+    where: { organizationId: demoOrg.id },
+    update: {},
+    create: {
+      organizationId: demoOrg.id,
+      name: "Dr. Bot — Asistente Clínica San Rafael",
+      greeting: "¡Hola! Soy el asistente virtual de Clínica San Rafael. Puedo ayudarte a agendar citas, resolver dudas sobre nuestros servicios y más. ¿En qué puedo ayudarte hoy?",
+      personality: "Soy amable, profesional y empático. Me enfoco en entender las necesidades del paciente y ofrecer soluciones rápidas. Siempre me dirijo al paciente por su nombre cuando lo conozco.",
+      capabilities: ["appointments", "faq", "lead_capture", "follow_up", "escalation"],
+      isActive: true,
+      phoneNumber: "+52 55 1234 0000",
+    },
+  });
+  console.log("✅ WhatsApp assistant created");
+
+  // ─── Phase 2: Knowledge Base ──────────────────────────────────────
+  const kbArticles = [
+    {
+      title: "Horarios de atención",
+      content: "Clínica San Rafael atiende de lunes a viernes de 8:00am a 8:00pm, y sábados de 9:00am a 2:00pm. Los domingos y días festivos permanecemos cerrados.",
+      category: "general",
+      tags: ["horario", "atención"],
+    },
+    {
+      title: "Especialidades médicas disponibles",
+      content: "Contamos con las siguientes especialidades: Medicina General, Pediatría, Ginecología, Cardiología, Dermatología, Nutrición, Psicología y Odontología.",
+      category: "servicios",
+      tags: ["especialidades", "médicos"],
+    },
+    {
+      title: "Cómo agendar una cita",
+      content: "Puedes agendar tu cita por WhatsApp con nuestro asistente virtual, llamando al 55 1234 0000, o visitando nuestra clínica directamente. Las citas de urgencia se atienden el mismo día.",
+      category: "citas",
+      tags: ["citas", "agenda"],
+    },
+    {
+      title: "Costos de consulta",
+      content: "Consulta de medicina general: $500 MXN. Especialidades: $700-900 MXN según especialidad. Aceptamos efectivo, tarjeta y transferencia. También manejamos seguros médicos principales.",
+      category: "precios",
+      tags: ["costos", "precios", "seguros"],
+    },
+    {
+      title: "Preparación para análisis de laboratorio",
+      content: "Para análisis de sangre en ayuno: no consumir alimentos 8-12 horas antes. Solo agua es permitida. Para análisis generales sin ayuno puedes llegar a cualquier hora. Nuestro laboratorio abre de 7am a 5pm.",
+      category: "servicios",
+      tags: ["laboratorio", "análisis"],
+    },
+  ];
+
+  for (const article of kbArticles) {
+    await prisma.knowledgeBase.create({
+      data: { ...article, organizationId: demoOrg.id },
+    });
+  }
+  console.log("✅ Knowledge base articles created");
+
+  // ─── Phase 2: Prompts ─────────────────────────────────────────────
+  await prisma.prompt.create({
+    data: {
+      organizationId: demoOrg.id,
+      name: "Sistema v1 — Clínica San Rafael",
+      type: "SYSTEM",
+      isActive: true,
+      content: `Eres el asistente virtual de Clínica San Rafael, una clínica médica de prestigio en Ciudad de México.
+
+Tu nombre es "Dr. Bot" y tu objetivo es:
+1. Agendar citas médicas de forma rápida y eficiente
+2. Responder preguntas sobre servicios, horarios y precios
+3. Capturar datos de leads interesados en nuestros servicios
+4. Escalar a un agente humano cuando el paciente lo solicite o la situación lo requiera
+
+REGLAS IMPORTANTES:
+- Siempre sé amable, empático y profesional
+- No proporciones diagnósticos médicos bajo ninguna circunstancia
+- Si el paciente menciona una emergencia, proporciona de inmediato el número de emergencias: 55 1234 0000
+- Cuando no tengas información sobre algo, ofrece escalar con un humano
+- Responde siempre en español`,
+    },
+  });
+
+  await prisma.prompt.create({
+    data: {
+      organizationId: demoOrg.id,
+      name: "Calificación de leads v1",
+      type: "LEAD_QUALIFICATION",
+      isActive: true,
+      content: `Para calificar a un lead, obtén la siguiente información:
+1. Nombre completo
+2. Número de teléfono de contacto
+3. Especialidad o tipo de consulta que necesita
+4. Disponibilidad de horario preferida
+5. Si tiene seguro médico (opcional)
+
+Una vez obtenidos estos datos, confirma la información y ofrece agendar la cita.`,
+    },
+  });
+  console.log("✅ Demo prompts created");
+
+  // ─── Phase 2: AI scored lead ──────────────────────────────────────
+  await prisma.lead.updateMany({
+    where: { organizationId: demoOrg.id, name: "Roberto Sánchez" },
+    data: {
+      score: 87,
+      scoreReason: "Empresa grande (>50 empleados), presupuesto disponible, decisor confirmado, timeline de 30 días.",
+    },
+  });
+
+  await prisma.lead.updateMany({
+    where: { organizationId: demoOrg.id, name: "María García" },
+    data: { score: 62, scoreReason: "Interés genuino, presupuesto no confirmado, necesita consultar con familia." },
+  });
+  console.log("✅ Lead scores updated");
+
+  // ─── Phase 2: Escalated conversation ─────────────────────────────
+  await prisma.conversation.create({
+    data: {
+      organizationId: demoOrg.id,
+      channel: "whatsapp",
+      contactPhone: "+52 55 9876 0001",
+      contactName: "Pedro Ortiz",
+      status: "ESCALATED",
+      aiHandled: false,
+      escalatedAt: new Date(),
+      messages: {
+        create: [
+          { role: "USER", content: "Necesito hablar urgentemente con alguien de la clínica" },
+          { role: "ASSISTANT", content: "Entiendo que tienes una situación urgente. ¿Puedes contarme más para poder ayudarte mejor?" },
+          { role: "USER", content: "Es por mi hijo, tuvo una reacción alérgica y necesito orientación médica" },
+          { role: "ASSISTANT", content: "Por la urgencia de la situación, estoy transfiriendo esta conversación a un agente de nuestra clínica. Por favor mantén la comunicación activa." },
+          { role: "SYSTEM", content: "Conversación escalada al equipo humano por urgencia médica." },
+        ],
+      },
+    },
+  });
+  console.log("✅ Escalated conversation created");
+
   console.log("\n✅ Seed completed successfully!");
   console.log("\n📋 Demo credentials:");
   console.log("  Admin → admin@reymen.io / admin123456");

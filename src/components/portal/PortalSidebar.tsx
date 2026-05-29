@@ -12,6 +12,9 @@ import {
   Calendar,
   FileText,
   LogOut,
+  BookOpen,
+  Bot,
+  SlidersHorizontal,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -20,7 +23,10 @@ const navItems = [
   { href: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/portal/leads", label: "Leads", icon: Users },
   { href: "/portal/automations", label: "Automatizaciones", icon: Zap },
+  { href: "/portal/whatsapp", label: "WhatsApp AI", icon: Bot },
   { href: "/portal/conversations", label: "Conversaciones", icon: MessageSquare },
+  { href: "/portal/knowledge-base", label: "Base de Conocimiento", icon: BookOpen },
+  { href: "/portal/prompts", label: "Prompts", icon: SlidersHorizontal },
   { href: "/portal/appointments", label: "Citas", icon: Calendar },
   { href: "/portal/reports", label: "Reportes", icon: BarChart3 },
   { href: "/portal/requests", label: "Solicitudes", icon: FileText },

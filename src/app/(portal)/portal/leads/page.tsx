@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreateLeadDialog } from "@/components/portal/CreateLeadDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { LeadScoreBadge } from "@/components/shared/LeadScoreBadge";
 import { formatDate } from "@/lib/utils";
 import { Users } from "lucide-react";
 
@@ -51,6 +52,7 @@ export default async function PortalLeadsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contacto</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Fuente</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Estado</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Score AI</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Fecha</th>
               </tr>
             </thead>
@@ -74,6 +76,9 @@ export default async function PortalLeadsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={lead.status} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <LeadScoreBadge score={lead.score} reason={lead.scoreReason} showTooltip />
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500">
                     {formatDate(lead.createdAt)}

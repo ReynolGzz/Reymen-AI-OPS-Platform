@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -52,8 +53,10 @@ export default async function PortalConversationsPage() {
               {conversations.map((conv) => (
                 <tr key={conv.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{conv.contactName ?? "Desconocido"}</p>
-                    {conv.contactPhone && <p className="text-xs text-slate-400">{conv.contactPhone}</p>}
+                    <Link href={`/portal/conversations/${conv.id}`} className="hover:underline">
+                      <p className="font-medium text-slate-900">{conv.contactName ?? "Desconocido"}</p>
+                      {conv.contactPhone && <p className="text-xs text-slate-400">{conv.contactPhone}</p>}
+                    </Link>
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant="secondary">{conv.channel}</Badge>

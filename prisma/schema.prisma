@@ -20,15 +20,18 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users          User[]
-  leads          Lead[]
-  automations    Automation[]
-  conversations  Conversation[]
-  appointments   Appointment[]
-  requests       Request[]
-  metrics        Metric[]
-  auditLogs      AuditLog[]
-  webhookEvents  WebhookEvent[]
+  users             User[]
+  leads             Lead[]
+  automations       Automation[]
+  conversations     Conversation[]
+  appointments      Appointment[]
+  requests          Request[]
+  metrics           Metric[]
+  auditLogs         AuditLog[]
+  webhookEvents     WebhookEvent[]
+  whatsappAssistant WhatsAppAssistant?
+  knowledgeBase     KnowledgeBase[]
+  prompts           Prompt[]
 
   @@index([slug])
 }
@@ -111,6 +114,7 @@ model Lead {
   source         String?
   status         LeadStatus @default(NEW)
   score          Int?
+  scoreReason    String?    @db.Text
   notes          String?    @db.Text
   metadata       Json?
   assignedTo     String?
@@ -350,4 +354,69 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
   @@index([userId])
+}
+
+// ─── WHATSAPP AI ASSISTANT ────────────────────────────────────────
+
+model WhatsAppAssistant {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  name           String   @default("Asistente AI")
+  greeting       String   @db.Text @default("¡Hola! Soy el asistente virtual. ¿En qué puedo ayudarte?")
+  personality    String?  @db.Text
+  capabilities   String[]
+  isActive       Boolean  @default(true)
+  phoneNumber    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+}
+
+// ─── KNOWLEDGE BASE ───────────────────────────────────────────────
+
+model KnowledgeBase {
+  id             String   @id @default(cuid())
+  organizationId String
+  title          String
+  content        String   @db.Text
+  category       String?
+  tags           String[]
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, category])
+  @@index([organizationId, isActive])
+}
+
+// ─── PROMPT MANAGER ───────────────────────────────────────────────
+
+model Prompt {
+  id             String     @id @default(cuid())
+  organizationId String
+  name           String
+  content        String     @db.Text
+  type           PromptType
+  isActive       Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, type])
+  @@index([organizationId, type, isActive])
+}
+
+enum PromptType {
+  SYSTEM
+  GREETING
+  LEAD_QUALIFICATION
+  APPOINTMENT_BOOKING
+  FAQ
+  ESCALATION
 }

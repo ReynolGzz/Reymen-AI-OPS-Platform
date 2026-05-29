@@ -1,0 +1,152 @@
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Bot, Phone, MessageSquare, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MetricCard } from "@/components/shared/MetricCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Badge } from "@/components/ui/badge";
+import { AssistantConfigForm } from "@/components/portal/AssistantConfigForm";
+import { AssistantToggle } from "@/components/portal/AssistantToggle";
+import { formatDate } from "@/lib/utils";
+
+async function getWhatsAppData(orgId: string) {
+  const [assistant, activeConvs, escalatedConvs, totalConvs] = await Promise.all([
+    prisma.whatsAppAssistant.findUnique({ where: { organizationId: orgId } }),
+    prisma.conversation.findMany({
+      where: { organizationId: orgId, status: "OPEN", channel: "whatsapp" },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      include: { _count: { select: { messages: true } } },
+    }),
+    prisma.conversation.count({ where: { organizationId: orgId, status: "ESCALATED" } }),
+    prisma.conversation.count({ where: { organizationId: orgId, channel: "whatsapp" } }),
+  ]);
+
+  const resolvedCount = await prisma.conversation.count({
+    where: { organizationId: orgId, status: "RESOLVED", aiHandled: true },
+  });
+
+  return { assistant, activeConvs, escalatedConvs, totalConvs, resolvedCount };
+}
+
+export default async function WhatsAppCenterPage() {
+  const session = await auth();
+  if (!session?.user.organizationId) return redirect("/login");
+
+  const { assistant, activeConvs, escalatedConvs, totalConvs, resolvedCount } =
+    await getWhatsAppData(session.user.organizationId);
+
+  const resolutionRate =
+    totalConvs > 0 ? Math.round((resolvedCount / totalConvs) * 100) : 0;
+
+  return (
+    <div>
+      <PageHeader
+        title="WhatsApp AI Center"
+        description="Configura y monitorea tu asistente de IA para WhatsApp"
+      />
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
+        <MetricCard title="Conversaciones totales" value={totalConvs} icon={MessageSquare} />
+        <MetricCard title="Activas ahora" value={activeConvs.length} icon={Bot} iconClassName="bg-brand-50" />
+        <MetricCard title="Escaladas" value={escalatedConvs} icon={AlertTriangle} iconClassName="bg-red-50" />
+        <MetricCard title="Resueltas por IA" value={`${resolutionRate}%`} icon={CheckCircle2} iconClassName="bg-emerald-50" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        {/* Config card — spans 2 cols */}
+        <div className="xl:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50">
+                    <Bot className="h-5 w-5 text-brand-600" />
+                  </div>
+                  <div>
+                    <CardTitle>{assistant?.name ?? "Asistente AI"}</CardTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      {assistant?.phoneNumber && (
+                        <span className="flex items-center gap-1 text-xs text-slate-500">
+                          <Phone className="h-3 w-3" />
+                          {assistant.phoneNumber}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-slate-500">
+                    {assistant?.isActive ?? false ? "Activo" : "Pausado"}
+                  </span>
+                  <AssistantToggle isActive={assistant?.isActive ?? false} />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <AssistantConfigForm assistant={assistant} />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Active conversations panel */}
+        <div>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="text-sm">Conversaciones activas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {activeConvs.length === 0 ? (
+                <div className="flex flex-col items-center py-8 text-center">
+                  <MessageSquare className="h-8 w-8 text-slate-200 mb-2" />
+                  <p className="text-sm text-slate-400">Sin conversaciones activas</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {activeConvs.map((conv) => (
+                    <Link
+                      key={conv.id}
+                      href={`/portal/conversations/${conv.id}`}
+                      className="block rounded-lg border border-slate-100 p-3 hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">
+                            {conv.contactName ?? "Desconocido"}
+                          </p>
+                          {conv.contactPhone && (
+                            <p className="text-xs text-slate-400">{conv.contactPhone}</p>
+                          )}
+                        </div>
+                        <Badge variant="secondary">{conv._count.messages} msgs</Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-400">{formatDate(conv.updatedAt)}</p>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {escalatedConvs > 0 && (
+                <div className="mt-4 rounded-lg bg-red-50 border border-red-100 p-3">
+                  <p className="text-sm font-medium text-red-700">
+                    {escalatedConvs} conversación{escalatedConvs !== 1 ? "es" : ""} escalada{escalatedConvs !== 1 ? "s" : ""}
+                  </p>
+                  <Link
+                    href="/portal/conversations"
+                    className="mt-1 block text-xs text-red-600 hover:underline"
+                  >
+                    Ver todas →
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
