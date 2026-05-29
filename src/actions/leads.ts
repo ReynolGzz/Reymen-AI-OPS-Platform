@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import type { LeadStatus } from "@prisma/client";
 
 const createLeadSchema = z.object({
@@ -34,6 +35,15 @@ export async function createLead(formData: FormData) {
       email: parsed.data.email || null,
       organizationId: session.user.organizationId,
     },
+  });
+
+  await logAudit({
+    organizationId: session.user.organizationId,
+    userId: session.user.id,
+    action: "lead.create",
+    resource: "Lead",
+    resourceId: lead.id,
+    metadata: { name: lead.name, source: lead.source },
   });
 
   revalidatePath("/portal/leads");
@@ -73,6 +83,14 @@ export async function deleteLead(leadId: string) {
   await prisma.lead.update({
     where: { id: leadId },
     data: { deletedAt: new Date() },
+  });
+
+  await logAudit({
+    organizationId: session.user.organizationId,
+    userId: session.user.id,
+    action: "lead.delete",
+    resource: "Lead",
+    resourceId: leadId,
   });
 
   revalidatePath("/portal/leads");

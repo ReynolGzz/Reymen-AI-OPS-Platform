@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateWebhookSecret } from "@/lib/utils";
+import { logAudit } from "@/lib/audit";
 import type { Prisma } from "@prisma/client";
 
 const installSchema = z.object({
@@ -78,6 +79,15 @@ export async function installTemplate(data: z.infer<typeof installSchema>) {
     });
   }
 
+  await logAudit({
+    organizationId: orgId,
+    userId: session.user.id,
+    action: "template.install",
+    resource: "TemplateInstallation",
+    resourceId: templateId,
+    metadata: { templateName: template.name, version: latestVersion.version },
+  });
+
   revalidatePath("/portal/templates");
   revalidatePath("/portal/automations");
   return { success: true, automationId: automation.id };
@@ -111,6 +121,14 @@ export async function uninstallTemplate(templateId: string) {
         ]
       : []),
   ]);
+
+  await logAudit({
+    organizationId: orgId,
+    userId: session.user.id,
+    action: "template.uninstall",
+    resource: "TemplateInstallation",
+    resourceId: templateId,
+  });
 
   revalidatePath("/portal/templates");
   revalidatePath("/portal/automations");

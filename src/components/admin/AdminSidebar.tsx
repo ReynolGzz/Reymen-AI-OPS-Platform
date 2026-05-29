@@ -12,6 +12,7 @@ import {
   LogOut,
   AlertTriangle,
   Layers,
+  Shield,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin/requests", label: "Solicitudes", icon: MessageSquare },
   { href: "/admin/templates", label: "Templates", icon: Layers },
   { href: "/admin/metrics", label: "Métricas", icon: BarChart3 },
+  { href: "/admin/audit", label: "Auditoría", icon: Shield },
   { href: "/admin/settings", label: "Configuración", icon: Settings },
 ];
 

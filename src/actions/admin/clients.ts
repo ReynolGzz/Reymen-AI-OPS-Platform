@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth, isAdmin } from "@/lib/auth";
 import { generateSlug, generateWebhookSecret } from "@/lib/utils";
+import { logAudit } from "@/lib/audit";
 
 const createClientSchema = z.object({
   orgName: z.string().min(2),
@@ -53,8 +54,41 @@ export async function createClient(formData: FormData) {
     include: { users: true },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "client.create",
+    resource: "Organization",
+    resourceId: org.id,
+    metadata: { name: org.name, slug: org.slug },
+  });
+
   revalidatePath("/admin/clients");
   return { success: true, orgId: org.id };
+}
+
+export async function changePlan(orgId: string, plan: string) {
+  const session = await auth();
+  if (!session || !isAdmin(session.user.role)) throw new Error("No autorizado");
+
+  const validPlans = ["starter", "professional", "enterprise"];
+  if (!validPlans.includes(plan)) throw new Error("Plan inválido");
+
+  const org = await prisma.organization.update({
+    where: { id: orgId },
+    data: { plan },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    organizationId: orgId,
+    action: "client.plan_change",
+    resource: "Organization",
+    resourceId: orgId,
+    metadata: { newPlan: plan },
+  });
+
+  revalidatePath(`/admin/clients/${orgId}`);
+  return { success: true, plan: org.plan };
 }
 
 export async function updateClientStatus(orgId: string, isActive: boolean) {

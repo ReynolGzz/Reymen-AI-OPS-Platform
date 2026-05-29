@@ -6,7 +6,9 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { ChangePlanDialog } from "@/components/admin/ChangePlanDialog";
 import { formatDate } from "@/lib/utils";
+import { PLAN_LIMITS } from "@/lib/permissions";
 
 async function getClientDetail(clientId: string) {
   return prisma.organization.findUnique({
@@ -57,9 +59,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
         title={client.name}
         description={`${client.slug} · ${client.industry ?? "Sin industria"}`}
         actions={
-          <Badge variant={client.isActive ? "success" : "destructive"}>
-            {client.isActive ? "Activo" : "Inactivo"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <ChangePlanDialog orgId={client.id} currentPlan={client.plan} />
+            <Badge variant={client.isActive ? "success" : "destructive"}>
+              {client.isActive ? "Activo" : "Inactivo"}
+            </Badge>
+          </div>
         }
       />
 
