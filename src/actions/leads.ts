@@ -1,0 +1,80 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import type { LeadStatus } from "@prisma/client";
+
+const createLeadSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional(),
+  source: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export async function createLead(formData: FormData) {
+  const session = await auth();
+  if (!session?.user.organizationId) throw new Error("No autorizado");
+
+  const parsed = createLeadSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email") || undefined,
+    phone: formData.get("phone"),
+    source: formData.get("source") || "manual",
+    notes: formData.get("notes"),
+  });
+
+  if (!parsed.success) throw new Error("Datos inválidos");
+
+  const lead = await prisma.lead.create({
+    data: {
+      ...parsed.data,
+      email: parsed.data.email || null,
+      organizationId: session.user.organizationId,
+    },
+  });
+
+  revalidatePath("/portal/leads");
+  return { success: true, leadId: lead.id };
+}
+
+export async function updateLeadStatus(leadId: string, status: LeadStatus) {
+  const session = await auth();
+  if (!session?.user.organizationId) throw new Error("No autorizado");
+
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, organizationId: session.user.organizationId },
+  });
+
+  if (!lead) throw new Error("Lead no encontrado");
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { status },
+  });
+
+  revalidatePath("/portal/leads");
+  return { success: true };
+}
+
+export async function deleteLead(leadId: string) {
+  const session = await auth();
+  if (!session?.user.organizationId) throw new Error("No autorizado");
+
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, organizationId: session.user.organizationId },
+  });
+
+  if (!lead) throw new Error("Lead no encontrado");
+
+  // Soft delete
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { deletedAt: new Date() },
+  });
+
+  revalidatePath("/portal/leads");
+  return { success: true };
+}
