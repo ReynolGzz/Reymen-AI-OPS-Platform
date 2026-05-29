@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Zap, Users, FileText } from "lucide-react";
+import { ArrowLeft, Zap, Users, FileText, Layers } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 async function getClientDetail(clientId: string) {
   return prisma.organization.findUnique({
@@ -28,6 +27,13 @@ async function getClientDetail(clientId: string) {
       requests: {
         take: 5,
         orderBy: { createdAt: "desc" },
+      },
+      templateInstallations: {
+        include: {
+          template: { select: { id: true, name: true, iconEmoji: true, industry: true } },
+          version: { select: { version: true } },
+        },
+        orderBy: { installedAt: "desc" },
       },
       _count: { select: { leads: true, automations: true, conversations: true } },
     },
@@ -169,6 +175,47 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
                       <p className="text-xs text-slate-400">{formatDate(req.createdAt)}</p>
                     </div>
                     <StatusBadge status={req.status} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Template Installations */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Templates instalados</CardTitle>
+            <Layers className="h-4 w-4 text-slate-400" />
+          </CardHeader>
+          <CardContent>
+            {client.templateInstallations.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-4">Sin templates instalados</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {client.templateInstallations.map((inst) => (
+                  <div
+                    key={inst.id}
+                    className="flex items-center gap-3 rounded-lg border border-slate-100 p-3"
+                  >
+                    <span className="text-2xl leading-none flex-shrink-0">{inst.template.iconEmoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/admin/templates/${inst.template.id}`}
+                        className="text-sm font-medium text-slate-900 hover:underline truncate block"
+                      >
+                        {inst.template.name}
+                      </Link>
+                      <p className="text-xs text-slate-400">
+                        v{inst.version.version} · {formatDate(inst.installedAt)}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={inst.status === "ACTIVE" ? "success" : "secondary"}
+                      className="text-xs flex-shrink-0"
+                    >
+                      {inst.status === "ACTIVE" ? "Activo" : inst.status}
+                    </Badge>
                   </div>
                 ))}
               </div>

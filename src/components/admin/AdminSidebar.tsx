@@ -11,6 +11,7 @@ import {
   MessageSquare,
   LogOut,
   AlertTriangle,
+  Layers,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/admin/automations", label: "Automatizaciones", icon: Zap },
   { href: "/admin/escalations", label: "Escalaciones", icon: AlertTriangle },
   { href: "/admin/requests", label: "Solicitudes", icon: MessageSquare },
+  { href: "/admin/templates", label: "Templates", icon: Layers },
   { href: "/admin/metrics", label: "Métricas", icon: BarChart3 },
   { href: "/admin/settings", label: "Configuración", icon: Settings },
 ];

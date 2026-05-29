@@ -28,10 +28,11 @@ model Organization {
   requests          Request[]
   metrics           Metric[]
   auditLogs         AuditLog[]
-  webhookEvents     WebhookEvent[]
-  whatsappAssistant WhatsAppAssistant?
-  knowledgeBase     KnowledgeBase[]
-  prompts           Prompt[]
+  webhookEvents         WebhookEvent[]
+  whatsappAssistant     WhatsAppAssistant?
+  knowledgeBase         KnowledgeBase[]
+  prompts               Prompt[]
+  templateInstallations TemplateInstallation[]
 
   @@index([slug])
 }
@@ -419,4 +420,75 @@ enum PromptType {
   APPOINTMENT_BOOKING
   FAQ
   ESCALATION
+}
+
+// ─── TEMPLATE ENGINE ──────────────────────────────────────────────
+
+model AutomationTemplate {
+  id             String   @id @default(cuid())
+  name           String
+  description    String   @db.Text
+  longDescription String? @db.Text
+  industry       String   // clinic, real_estate, gym, legal, workshop, ecommerce
+  category       String   // lead_capture, appointments, follow_up, crm, retention
+  tags           String[]
+  iconEmoji      String   @default("⚡")
+  isPublished    Boolean  @default(false)
+  currentVersion String?  // latest semver e.g. "1.0.0"
+  createdBy      String?  // userId
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  versions      TemplateVersion[]
+  installations TemplateInstallation[]
+
+  @@index([industry])
+  @@index([isPublished])
+}
+
+model TemplateVersion {
+  id              String   @id @default(cuid())
+  templateId      String
+  version         String   // "1.0.0"
+  changelog       String?  @db.Text
+  n8nWorkflowJson Json     // full n8n workflow export JSON
+  n8nWorkflowId   String?  // ID of deployed workflow in n8n instance
+  defaultConfig   Json?    // default variable values for this version
+  isLatest        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  template      AutomationTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  installations TemplateInstallation[]
+
+  @@unique([templateId, version])
+  @@index([templateId])
+  @@index([templateId, isLatest])
+}
+
+model TemplateInstallation {
+  id             String             @id @default(cuid())
+  organizationId String
+  templateId     String
+  versionId      String
+  automationId   String?            // FK to Automation created on install
+  status         InstallationStatus @default(PENDING)
+  config         Json?              // org-specific config overrides
+  installedAt    DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id])
+  template     AutomationTemplate @relation(fields: [templateId], references: [id])
+  version      TemplateVersion    @relation(fields: [versionId], references: [id])
+
+  @@unique([organizationId, templateId])
+  @@index([organizationId])
+  @@index([templateId])
+}
+
+enum InstallationStatus {
+  PENDING
+  INSTALLING
+  ACTIVE
+  FAILED
+  UNINSTALLED
 }

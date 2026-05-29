@@ -322,6 +322,141 @@ Una vez obtenidos estos datos, confirma la información y ofrece agendar la cita
   });
   console.log("✅ Escalated conversation created");
 
+  // ─── Phase 3: Automation Templates ───────────────────────────────
+  const templateDefs = [
+    {
+      id: "tmpl-clinic-leads",
+      name: "Captura de Leads — Clínica",
+      description: "Captura automáticamente pacientes potenciales desde WhatsApp, califica su urgencia y agenda una cita de primer contacto.",
+      longDescription: "Este template instala un flujo completo de captura de leads para clínicas y consultorios. El asistente IA recibe mensajes de WhatsApp, extrae datos del paciente (nombre, motivo de consulta, disponibilidad), califica la urgencia y agenda automáticamente una cita de valoración.",
+      industry: "clinic",
+      category: "lead_capture",
+      iconEmoji: "🏥",
+      isPublished: true,
+      currentVersion: "1.0.0",
+      n8nWorkflowId: "tmpl-wf-clinic-leads",
+    },
+    {
+      id: "tmpl-real-estate-leads",
+      name: "Calificación de Leads — Inmobiliaria",
+      description: "Califica leads de compradores y arrendatarios con preguntas clave: presupuesto, zona, tipo de propiedad y timeline.",
+      longDescription: "Automatiza la calificación inicial de prospectos inmobiliarios. El bot pregunta por presupuesto, zona de interés, número de habitaciones y urgencia. Asigna un score automático y notifica al agente cuando el lead es de alta calidad.",
+      industry: "real_estate",
+      category: "lead_capture",
+      iconEmoji: "🏠",
+      isPublished: true,
+      currentVersion: "1.0.0",
+      n8nWorkflowId: "tmpl-wf-realestate-leads",
+    },
+    {
+      id: "tmpl-gym-retention",
+      name: "Retención de Membresías — Gimnasio",
+      description: "Detecta membresías por vencer y activa una secuencia de reactivación automática por WhatsApp con oferta personalizada.",
+      longDescription: "3 días antes de que venza una membresía, el sistema envía un mensaje personalizado con una oferta de renovación. Si no responde en 24h, envía un recordatorio final. Registra la tasa de retención en el dashboard.",
+      industry: "gym",
+      category: "retention",
+      iconEmoji: "💪",
+      isPublished: true,
+      currentVersion: "1.0.0",
+      n8nWorkflowId: "tmpl-wf-gym-retention",
+    },
+    {
+      id: "tmpl-legal-appointments",
+      name: "Agendamiento de Consultas — Legal",
+      description: "Agenda consultas legales iniciales, recopila información del caso y envía confirmación con recordatorio 24h antes.",
+      longDescription: "El asistente califica el tipo de caso (civil, laboral, familiar, corporativo), verifica la urgencia y agenda la consulta con el abogado disponible. Envía confirmación por WhatsApp y un recordatorio automático 24 horas antes.",
+      industry: "legal",
+      category: "appointments",
+      iconEmoji: "⚖️",
+      isPublished: true,
+      currentVersion: "1.0.0",
+      n8nWorkflowId: "tmpl-wf-legal-appointments",
+    },
+    {
+      id: "tmpl-workshop-followup",
+      name: "Seguimiento Post-Servicio — Taller",
+      description: "Envía encuesta de satisfacción 24h después de cada servicio y activa una oferta de mantenimiento preventivo.",
+      longDescription: "Cuando se marca un servicio como completado, el sistema espera 24 horas y envía una encuesta de satisfacción de 3 preguntas. Si la calificación es ≥4/5 pide una reseña en Google. A los 3 meses envía recordatorio de mantenimiento preventivo.",
+      industry: "workshop",
+      category: "follow_up",
+      iconEmoji: "🔧",
+      isPublished: true,
+      currentVersion: "1.0.0",
+      n8nWorkflowId: "tmpl-wf-workshop-followup",
+    },
+    {
+      id: "tmpl-ecommerce-abandoned",
+      name: "Recuperación de Carritos — E-commerce",
+      description: "Detecta carritos abandonados y activa una secuencia de 3 mensajes en 48h para recuperar la venta con descuento progresivo.",
+      longDescription: "Cuando un usuario abandona el carrito, el sistema activa una secuencia: mensaje 1 a las 2h (recordatorio simple), mensaje 2 a las 24h (10% descuento), mensaje 3 a las 48h (15% descuento último aviso). Tasa de recuperación promedio: 18%.",
+      industry: "ecommerce",
+      category: "retention",
+      iconEmoji: "🛒",
+      isPublished: true,
+      currentVersion: "1.1.0",
+      n8nWorkflowId: "tmpl-wf-ecommerce-abandoned",
+    },
+  ];
+
+  const n8nWorkflowSkeleton = {
+    nodes: [
+      { id: "trigger", type: "n8n-nodes-base.webhook", name: "Webhook Trigger", position: [240, 300] },
+      { id: "process", type: "n8n-nodes-base.function", name: "Process Data", position: [460, 300] },
+      { id: "respond", type: "n8n-nodes-base.httpRequest", name: "Send Response", position: [680, 300] },
+    ],
+    connections: {
+      trigger: { main: [[{ node: "process", type: "main", index: 0 }]] },
+      process: { main: [[{ node: "respond", type: "main", index: 0 }]] },
+    },
+  };
+
+  for (const def of templateDefs) {
+    const { n8nWorkflowId, currentVersion, ...templateData } = def;
+
+    const template = await prisma.automationTemplate.upsert({
+      where: { id: def.id },
+      update: {},
+      create: {
+        ...templateData,
+        versions: {
+          create: {
+            version: currentVersion,
+            isLatest: true,
+            changelog: "Versión inicial",
+            n8nWorkflowId,
+            n8nWorkflowJson: n8nWorkflowSkeleton,
+            defaultConfig: { triggerType: "webhook", language: "es", timezone: "America/Mexico_City" },
+          },
+        },
+      },
+    });
+    console.log(`✅ Template created: ${template.name}`);
+  }
+
+  // Install the clinic leads template on the demo org
+  const clinicTemplate = await prisma.automationTemplate.findUnique({
+    where: { id: "tmpl-clinic-leads" },
+    include: { versions: { where: { isLatest: true }, take: 1 } },
+  });
+
+  if (clinicTemplate && clinicTemplate.versions[0]) {
+    const existingInstall = await prisma.templateInstallation.findUnique({
+      where: { organizationId_templateId: { organizationId: demoOrg.id, templateId: clinicTemplate.id } },
+    });
+
+    if (!existingInstall) {
+      await prisma.templateInstallation.create({
+        data: {
+          organizationId: demoOrg.id,
+          templateId: clinicTemplate.id,
+          versionId: clinicTemplate.versions[0].id,
+          status: "ACTIVE",
+        },
+      });
+      console.log("✅ Clinic leads template installed on demo org");
+    }
+  }
+
   console.log("\n✅ Seed completed successfully!");
   console.log("\n📋 Demo credentials:");
   console.log("  Admin → admin@reymen.io / admin123456");

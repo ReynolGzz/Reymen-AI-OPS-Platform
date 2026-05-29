@@ -15,6 +15,7 @@ import {
   BookOpen,
   Bot,
   SlidersHorizontal,
+  Layers,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/portal/prompts", label: "Prompts", icon: SlidersHorizontal },
   { href: "/portal/appointments", label: "Citas", icon: Calendar },
   { href: "/portal/reports", label: "Reportes", icon: BarChart3 },
+  { href: "/portal/templates", label: "Templates", icon: Layers },
   { href: "/portal/requests", label: "Solicitudes", icon: FileText },
   { href: "/portal/settings", label: "Configuración", icon: Settings },
 ];
