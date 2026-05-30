@@ -1,0 +1,46 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+function escapeCsv(value: string | null | undefined): string {
+  if (value == null) return "";
+  const str = String(value);
+  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+export async function GET() {
+  const session = await auth();
+  if (!session?.user.organizationId) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const leads = await prisma.lead.findMany({
+    where: { organizationId: session.user.organizationId, deletedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const headers = ["Nombre", "Email", "Teléfono", "Fuente", "Estado", "Score AI", "Notas", "Fecha"];
+  const rows = leads.map((l) => [
+    escapeCsv(l.name),
+    escapeCsv(l.email),
+    escapeCsv(l.phone),
+    escapeCsv(l.source),
+    escapeCsv(l.status),
+    escapeCsv(l.score != null ? String(l.score) : null),
+    escapeCsv(l.notes),
+    escapeCsv(l.createdAt.toISOString().split("T")[0]),
+  ]);
+
+  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const filename = `leads-${new Date().toISOString().split("T")[0]}.csv`;
+
+  return new NextResponse(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    },
+  });
+}

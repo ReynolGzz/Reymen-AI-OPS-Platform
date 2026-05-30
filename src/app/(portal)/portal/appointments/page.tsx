@@ -2,9 +2,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { CreateAppointmentDialog } from "@/components/portal/CreateAppointmentDialog";
+import { AppointmentStatusSelect } from "@/components/portal/AppointmentStatusSelect";
 import { formatDateTime } from "@/lib/utils";
 import { Calendar } from "lucide-react";
 
@@ -25,6 +26,7 @@ export default async function PortalAppointmentsPage() {
       <PageHeader
         title="Citas"
         description={`${upcoming.length} próximas · ${past.length} pasadas`}
+        actions={<CreateAppointmentDialog />}
       />
 
       {appointments.length === 0 ? (
@@ -33,7 +35,8 @@ export default async function PortalAppointmentsPage() {
             <EmptyState
               icon={Calendar}
               title="Sin citas agendadas"
-              description="Las citas generadas por tus automatizaciones aparecerán aquí."
+              description="Las citas generadas por tus automatizaciones aparecerán aquí. También puedes agregarlas manualmente."
+              action={<CreateAppointmentDialog />}
             />
           </CardContent>
         </Card>
@@ -52,11 +55,21 @@ export default async function PortalAppointmentsPage() {
             <tbody className="divide-y divide-slate-100">
               {appointments.map((apt) => (
                 <tr key={apt.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{apt.title}</td>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-slate-900">{apt.title}</p>
+                    {apt.description && (
+                      <p className="text-xs text-slate-400 truncate max-w-[200px]">{apt.description}</p>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-xs text-slate-600">{formatDateTime(apt.startTime)}</td>
                   <td className="px-4 py-3 text-xs text-slate-600">{formatDateTime(apt.endTime)}</td>
                   <td className="px-4 py-3 text-xs text-slate-500">{apt.source ?? "—"}</td>
-                  <td className="px-4 py-3"><StatusBadge status={apt.status} /></td>
+                  <td className="px-4 py-3">
+                    <AppointmentStatusSelect
+                      appointmentId={apt.id}
+                      currentStatus={apt.status}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

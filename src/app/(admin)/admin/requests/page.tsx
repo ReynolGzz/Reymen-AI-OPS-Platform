@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { UpdateRequestStatusSelect } from "@/components/admin/UpdateRequestStatusSelect";
 import { formatDate } from "@/lib/utils";
 import { FileText } from "lucide-react";
 
@@ -75,7 +75,7 @@ export default async function AdminRequestsPage() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={req.status} />
+                    <UpdateRequestStatusSelect requestId={req.id} currentStatus={req.status} />
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500">{formatDate(req.createdAt)}</td>
                 </tr>
