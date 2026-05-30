@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -6,7 +7,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { Zap } from "lucide-react";
+import { Zap, ArrowRight } from "lucide-react";
 
 async function getAutomations(orgId: string) {
   return prisma.automation.findMany({
@@ -48,7 +49,7 @@ export default async function PortalAutomationsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {automations.map((auto) => (
-            <Card key={auto.id}>
+            <Card key={auto.id} className="hover:border-brand-200 hover:shadow-sm transition-all">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -68,7 +69,15 @@ export default async function PortalAutomationsPage() {
               <CardContent>
                 <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
                   <span>{auto._count.events} eventos totales</span>
-                  <span>Creado {formatDate(auto.createdAt)}</span>
+                  <div className="flex items-center gap-3">
+                    <span>Creado {formatDate(auto.createdAt)}</span>
+                    <Link
+                      href={`/portal/automations/${auto.id}`}
+                      className="flex items-center gap-1 text-brand-600 hover:text-brand-700 font-medium"
+                    >
+                      Ver detalle <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </div>
                 </div>
 
                 {auto.events.length > 0 && (

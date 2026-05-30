@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Layers,
   Shield,
+  Code,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/admin/templates", label: "Templates", icon: Layers },
   { href: "/admin/metrics", label: "Métricas", icon: BarChart3 },
   { href: "/admin/audit", label: "Auditoría", icon: Shield },
+  { href: "/admin/api-docs", label: "API Docs", icon: Code },
   { href: "/admin/settings", label: "Configuración", icon: Settings },
 ];
 
