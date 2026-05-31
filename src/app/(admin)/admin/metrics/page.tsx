@@ -172,7 +172,7 @@ export default async function AdminMetricsPage() {
               ].map(({ label, value, color }) => (
                 <div key={label} className="flex items-center justify-between text-sm">
                   <span className="text-slate-500">{label}</span>
-                  <span className={`font-bold ${color}`}>{value.toLocaleString()}</span>
+                  <span className={`font-bold ${color}`}>{value.toLocaleString("en-US")}</span>
                 </div>
               ))}
               {totalEvents > 0 && (

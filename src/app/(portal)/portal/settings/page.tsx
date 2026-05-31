@@ -66,7 +66,7 @@ export default async function PortalSettingsPage() {
             </div>
             <div className="space-y-2">
               {[
-                { label: "Leads incluidos", value: plan.leads >= 99999 ? "Ilimitados" : plan.leads.toLocaleString() },
+                { label: "Leads incluidos", value: plan.leads >= 99999 ? "Ilimitados" : plan.leads.toLocaleString("en-US") },
                 { label: "Usuarios", value: plan.users >= 99 ? "Ilimitados" : plan.users },
                 { label: "Automatizaciones", value: plan.automations >= 99 ? "Ilimitadas" : plan.automations },
               ].map(({ label, value }) => (

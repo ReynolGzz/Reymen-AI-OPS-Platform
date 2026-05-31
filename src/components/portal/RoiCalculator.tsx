@@ -66,8 +66,8 @@ export function RoiCalculator({ totalLeads, wonLeads }: RoiCalculatorProps) {
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { label: "Leads totales", value: totalLeads.toLocaleString(), color: "text-slate-900" },
-            { label: "Leads ganados", value: wonLeads.toLocaleString(), color: "text-emerald-600" },
+            { label: "Leads totales", value: totalLeads.toLocaleString("en-US"), color: "text-slate-900" },
+            { label: "Leads ganados", value: wonLeads.toLocaleString("en-US"), color: "text-emerald-600" },
             { label: "Tasa de cierre", value: `${conversionRate}%`, color: "text-brand-600" },
             { label: "ROI estimado", value: `${roi}%`, color: roi > 0 ? "text-emerald-600" : "text-red-500" },
           ].map(({ label, value, color }) => (
@@ -81,12 +81,12 @@ export function RoiCalculator({ totalLeads, wonLeads }: RoiCalculatorProps) {
         <div className="mt-4 rounded-lg border border-brand-100 bg-brand-50 p-3">
           <p className="text-sm font-medium text-brand-900">
             Ingresos estimados:{" "}
-            <span className="text-brand-700">${revenue.toLocaleString()} USD</span>
+            <span className="text-brand-700">${revenue.toLocaleString("en-US")} USD</span>
             {" "}vs. inversión en plataforma:{" "}
             <span className="text-brand-700">${planCost}/mes</span>
           </p>
           <p className="text-xs text-brand-700 mt-0.5">
-            Basado en {wonLeads} leads ganados × ${avgDealValue.toLocaleString()} valor promedio.
+            Basado en {wonLeads} leads ganados × ${avgDealValue.toLocaleString("en-US")} valor promedio.
             Ajusta los valores para simular distintos escenarios.
           </p>
         </div>

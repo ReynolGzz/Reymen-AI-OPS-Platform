@@ -31,7 +31,7 @@ export default async function AdminSettingsPage() {
             {[
               { label: "Organizaciones activas", value: stats.totalOrgs },
               { label: "Usuarios activos", value: stats.totalUsers },
-              { label: "Leads totales", value: stats.totalLeads.toLocaleString() },
+              { label: "Leads totales", value: stats.totalLeads.toLocaleString("en-US") },
               { label: "Automatizaciones", value: stats.totalAutomations },
               { label: "Templates publicados", value: stats.totalTemplates },
               { label: "Instalaciones activas", value: stats.activeInstallations },

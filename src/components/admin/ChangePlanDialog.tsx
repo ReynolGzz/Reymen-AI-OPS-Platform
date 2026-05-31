@@ -90,7 +90,7 @@ export function ChangePlanDialog({ orgId, currentPlan }: ChangePlanDialogProps) 
                   {isSelected && <Check className="h-4 w-4 text-brand-600" />}
                 </div>
                 <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
-                  <span>{limits?.leads.toLocaleString()} leads</span>
+                  <span>{limits?.leads.toLocaleString("en-US")} leads</span>
                   <span>{limits?.users === 99 ? "Ilimitado" : limits?.users} usuarios</span>
                   <span>{limits?.automations === 99 ? "Ilimitadas" : limits?.automations} automatizaciones</span>
                 </div>
