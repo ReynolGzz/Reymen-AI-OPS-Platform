@@ -73,11 +73,12 @@ export function EditUserDialog({ userId, userName, userRole }: EditUserDialogPro
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="text-slate-400 hover:text-brand-600 hover:bg-brand-50"
+          className="text-slate-600 hover:text-brand-600 hover:border-brand-300 gap-1.5"
         >
-          <Pencil className="h-4 w-4" />
+          <Pencil className="h-3.5 w-3.5" />
+          Editar
         </Button>
       </DialogTrigger>
       <DialogContent>
