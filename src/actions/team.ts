@@ -87,3 +87,42 @@ export async function removeTeamMember(userId: string) {
   revalidatePath("/portal/settings");
   return { success: true };
 }
+
+const updateSchema = z.object({
+  name: z.string().min(2, "Mínimo 2 caracteres"),
+  role: z.enum(["MANAGER", "AGENT", "VIEWER"]),
+});
+
+export async function updateTeamMember(userId: string, data: { name: string; role: string }) {
+  const session = await auth();
+  if (!session?.user.organizationId) throw new Error("No autorizado");
+  if (!can(session.user.role as UserRole, "team:manage")) throw new Error("Sin permisos para gestionar el equipo");
+
+  const parsed = updateSchema.safeParse(data);
+  if (!parsed.success) throw new Error(parsed.error.errors[0]?.message ?? "Datos inválidos");
+
+  const user = await prisma.user.findFirst({
+    where: { id: userId, organizationId: session.user.organizationId },
+  });
+
+  if (!user) throw new Error("Usuario no encontrado");
+  if (user.id === session.user.id) throw new Error("No puedes editarte a ti mismo desde aquí");
+  if (user.role === "OWNER") throw new Error("No puedes modificar al propietario");
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { name: parsed.data.name, role: parsed.data.role as UserRole },
+  });
+
+  await logAudit({
+    organizationId: session.user.organizationId,
+    userId: session.user.id,
+    action: "team.update",
+    resource: "User",
+    resourceId: userId,
+    metadata: { email: updated.email, name: updated.name, role: updated.role },
+  });
+
+  revalidatePath("/portal/settings");
+  return { success: true };
+}

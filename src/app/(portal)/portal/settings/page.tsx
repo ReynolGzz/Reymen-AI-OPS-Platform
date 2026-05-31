@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InviteUserForm } from "@/components/portal/InviteUserForm";
 import { RemoveUserButton } from "@/components/portal/RemoveUserButton";
+import { EditUserDialog } from "@/components/portal/EditUserDialog";
 import { formatDate } from "@/lib/utils";
 import { can } from "@/lib/permissions";
 import { PLAN_LIMITS } from "@/lib/permissions";
@@ -117,7 +118,10 @@ export default async function PortalSettingsPage() {
                       <p className="text-xs text-slate-400">{user.email}</p>
                     </div>
                     {canManageTeam && !isCurrentUser && !isOwner && (
-                      <RemoveUserButton userId={user.id} userName={user.name ?? user.email} />
+                      <div className="flex items-center gap-1">
+                        <EditUserDialog userId={user.id} userName={user.name ?? "Sin nombre"} userRole={user.role} />
+                        <RemoveUserButton userId={user.id} userName={user.name ?? user.email} />
+                      </div>
                     )}
                   </div>
                 );
