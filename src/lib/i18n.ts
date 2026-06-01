@@ -401,6 +401,48 @@ export const strings = {
     reqSendBtn: "Enviar solicitud",
     reqSuccessMsg: "Solicitud enviada exitosamente",
     reqErrorMsg: "Error al enviar solicitud",
+
+    // ── Lead score ────────────────────────────────────────────────
+    noScore: "Sin score",
+    scoreHigh: "Alto",
+    scoreMid: "Medio",
+    scoreLow: "Bajo",
+    scoreCold: "Frío",
+
+    // ── Lead actions ──────────────────────────────────────────────
+    statusUpdated: "Estado actualizado",
+    leadDeleted: "Lead eliminado",
+    confirmDeleteLead: "¿Eliminar este lead? La acción no se puede deshacer.",
+
+    // ── WhatsApp assistant form ───────────────────────────────────
+    assistantName: "Nombre del asistente",
+    assistantNamePlaceholder: "Asistente AI",
+    whatsappBusinessNumber: "Número de WhatsApp Business",
+    initialGreeting: "Saludo inicial",
+    greetingPlaceholder: "¡Hola! Soy el asistente virtual de [empresa]...",
+    personalityStyle: "Personalidad / Estilo",
+    personalityPlaceholder: "Ej: Soy amable, profesional y conciso. Me enfoco en entender las necesidades del cliente y ofrecer soluciones rápidas...",
+    personalityHint: "Este texto se incluye en el system prompt del asistente.",
+    activeCapabilities: "Capacidades activas",
+    saveConfig: "Guardar configuración",
+    assistantSaved: "Asistente actualizado exitosamente",
+    assistantSaveError: "Error al guardar configuración",
+    assistantActivated: "Asistente activado",
+    assistantPaused: "Asistente pausado",
+    toggleError: "Error al cambiar estado",
+    capLeadCapture: "Captura de leads",
+    capAppointments: "Agendar citas",
+    capFaq: "Responder preguntas",
+    capFollowUp: "Seguimiento",
+    capQualification: "Calificación de leads",
+    capEscalation: "Escalación a humano",
+
+    // ── WhatsApp page ─────────────────────────────────────────────
+    activeStatus: "Activo",
+    pausedStatus: "Pausado",
+    escalatedConvs: "conversación escalada",
+    escalatedConvsPlural: "conversaciones escaladas",
+    viewAll2: "Ver todas →",
   },
   en: {
     // ── Navigation ───────────────────────────────────────────
@@ -799,6 +841,48 @@ export const strings = {
     reqSendBtn: "Send request",
     reqSuccessMsg: "Request sent successfully",
     reqErrorMsg: "Error sending request",
+
+    // ── Lead score ────────────────────────────────────────────────
+    noScore: "No score",
+    scoreHigh: "High",
+    scoreMid: "Mid",
+    scoreLow: "Low",
+    scoreCold: "Cold",
+
+    // ── Lead actions ──────────────────────────────────────────────
+    statusUpdated: "Status updated",
+    leadDeleted: "Lead deleted",
+    confirmDeleteLead: "Delete this lead? This action cannot be undone.",
+
+    // ── WhatsApp assistant form ───────────────────────────────────
+    assistantName: "Assistant name",
+    assistantNamePlaceholder: "AI Assistant",
+    whatsappBusinessNumber: "WhatsApp Business number",
+    initialGreeting: "Initial greeting",
+    greetingPlaceholder: "Hi! I'm the virtual assistant for [company]...",
+    personalityStyle: "Personality / Style",
+    personalityPlaceholder: "Ex: I'm friendly, professional and concise. I focus on understanding customer needs and offering quick solutions...",
+    personalityHint: "This text is included in the assistant's system prompt.",
+    activeCapabilities: "Active capabilities",
+    saveConfig: "Save configuration",
+    assistantSaved: "Assistant updated successfully",
+    assistantSaveError: "Error saving configuration",
+    assistantActivated: "Assistant activated",
+    assistantPaused: "Assistant paused",
+    toggleError: "Error changing status",
+    capLeadCapture: "Lead capture",
+    capAppointments: "Schedule appointments",
+    capFaq: "Answer questions",
+    capFollowUp: "Follow-up",
+    capQualification: "Lead qualification",
+    capEscalation: "Human escalation",
+
+    // ── WhatsApp page ─────────────────────────────────────────────
+    activeStatus: "Active",
+    pausedStatus: "Paused",
+    escalatedConvs: "escalated conversation",
+    escalatedConvsPlural: "escalated conversations",
+    viewAll2: "View all →",
   },
 } as const;
 

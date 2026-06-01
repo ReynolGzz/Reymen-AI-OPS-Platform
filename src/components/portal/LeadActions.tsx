@@ -4,16 +4,8 @@ import { useState } from "react";
 import { Loader2, Trash2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { updateLeadStatus, deleteLead } from "@/actions/leads";
+import { usePreferences } from "@/context/preferences";
 import type { LeadStatus } from "@prisma/client";
-
-const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
-  { value: "NEW", label: "Nuevo" },
-  { value: "CONTACTED", label: "Contactado" },
-  { value: "QUALIFIED", label: "Calificado" },
-  { value: "PROPOSAL", label: "Propuesta enviada" },
-  { value: "WON", label: "Ganado" },
-  { value: "LOST", label: "Perdido" },
-];
 
 interface LeadActionsProps {
   leadId: string;
@@ -21,8 +13,18 @@ interface LeadActionsProps {
 }
 
 export function LeadActions({ leadId, currentStatus }: LeadActionsProps) {
+  const { t } = usePreferences();
   const [status, setStatus] = useState<LeadStatus>(currentStatus);
   const [loading, setLoading] = useState(false);
+
+  const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
+    { value: "NEW", label: t.statusNew },
+    { value: "CONTACTED", label: t.statusContacted },
+    { value: "QUALIFIED", label: t.statusQualified },
+    { value: "PROPOSAL", label: t.statusProposal },
+    { value: "WON", label: t.statusWon },
+    { value: "LOST", label: t.statusLost },
+  ];
 
   async function handleStatusChange(newStatus: LeadStatus) {
     if (newStatus === status) return;
@@ -30,22 +32,22 @@ export function LeadActions({ leadId, currentStatus }: LeadActionsProps) {
     try {
       await updateLeadStatus(leadId, newStatus);
       setStatus(newStatus);
-      toast.success("Estado actualizado");
+      toast.success(t.statusUpdated);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error");
+      toast.error(e instanceof Error ? e.message : t.error);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDelete() {
-    if (!confirm("¿Eliminar este lead? La acción no se puede deshacer.")) return;
+    if (!confirm(t.confirmDeleteLead)) return;
     setLoading(true);
     try {
       await deleteLead(leadId);
-      toast.success("Lead eliminado");
+      toast.success(t.leadDeleted);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error");
+      toast.error(e instanceof Error ? e.message : t.error);
     } finally {
       setLoading(false);
     }
@@ -70,7 +72,7 @@ export function LeadActions({ leadId, currentStatus }: LeadActionsProps) {
         onClick={handleDelete}
         disabled={loading}
         className="rounded p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-        title="Eliminar lead"
+        title={t.delete}
       >
         {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
       </button>

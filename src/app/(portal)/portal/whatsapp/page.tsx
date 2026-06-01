@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Bot, Phone, MessageSquare, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getServerT } from "@/lib/i18n-server";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/shared/MetricCard";
@@ -36,8 +37,11 @@ export default async function WhatsAppCenterPage() {
   const session = await auth();
   if (!session?.user.organizationId) return redirect("/login");
 
-  const { assistant, activeConvs, escalatedConvs, totalConvs, resolvedCount } =
-    await getWhatsAppData(session.user.organizationId);
+  const [t, { assistant, activeConvs, escalatedConvs, totalConvs, resolvedCount }] =
+    await Promise.all([
+      getServerT(),
+      getWhatsAppData(session.user.organizationId),
+    ]);
 
   const resolutionRate =
     totalConvs > 0 ? Math.round((resolvedCount / totalConvs) * 100) : 0;
@@ -45,16 +49,16 @@ export default async function WhatsAppCenterPage() {
   return (
     <div>
       <PageHeader
-        title="WhatsApp AI Center"
-        description="Configura y monitorea tu asistente de IA para WhatsApp"
+        title={t.whatsappTitle}
+        description={t.whatsappDesc}
       />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
-        <MetricCard title="Conversaciones totales" value={totalConvs} icon={MessageSquare} />
-        <MetricCard title="Activas ahora" value={activeConvs.length} icon={Bot} iconClassName="bg-brand-50" />
-        <MetricCard title="Escaladas" value={escalatedConvs} icon={AlertTriangle} iconClassName="bg-red-50" />
-        <MetricCard title="Resueltas por IA" value={`${resolutionRate}%`} icon={CheckCircle2} iconClassName="bg-emerald-50" />
+        <MetricCard title={t.totalConversations} value={totalConvs} icon={MessageSquare} />
+        <MetricCard title={t.activeNow} value={activeConvs.length} icon={Bot} iconClassName="bg-brand-50" />
+        <MetricCard title={t.escalated} value={escalatedConvs} icon={AlertTriangle} iconClassName="bg-red-50" />
+        <MetricCard title={t.resolvedByAI} value={`${resolutionRate}%`} icon={CheckCircle2} iconClassName="bg-emerald-50" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -68,7 +72,7 @@ export default async function WhatsAppCenterPage() {
                     <Bot className="h-5 w-5 text-brand-600" />
                   </div>
                   <div>
-                    <CardTitle>{assistant?.name ?? "Asistente AI"}</CardTitle>
+                    <CardTitle>{assistant?.name ?? t.aiAssistant}</CardTitle>
                     <div className="flex items-center gap-2 mt-1">
                       {assistant?.phoneNumber && (
                         <span className="flex items-center gap-1 text-xs text-slate-500">
@@ -81,7 +85,7 @@ export default async function WhatsAppCenterPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-slate-500">
-                    {assistant?.isActive ?? false ? "Activo" : "Pausado"}
+                    {assistant?.isActive ?? false ? t.activeStatus : t.pausedStatus}
                   </span>
                   <AssistantToggle isActive={assistant?.isActive ?? false} />
                 </div>
@@ -97,13 +101,13 @@ export default async function WhatsAppCenterPage() {
         <div>
           <Card className="h-full">
             <CardHeader>
-              <CardTitle className="text-sm">Conversaciones activas</CardTitle>
+              <CardTitle className="text-sm">{t.activeConversations}</CardTitle>
             </CardHeader>
             <CardContent>
               {activeConvs.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
                   <MessageSquare className="h-8 w-8 text-slate-200 mb-2" />
-                  <p className="text-sm text-slate-400">Sin conversaciones activas</p>
+                  <p className="text-sm text-slate-400">{t.noActiveConversations}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -116,13 +120,13 @@ export default async function WhatsAppCenterPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-slate-900 truncate">
-                            {conv.contactName ?? "Desconocido"}
+                            {conv.contactName ?? t.unknown}
                           </p>
                           {conv.contactPhone && (
                             <p className="text-xs text-slate-400">{conv.contactPhone}</p>
                           )}
                         </div>
-                        <Badge variant="secondary">{conv._count.messages} msgs</Badge>
+                        <Badge variant="secondary">{conv._count.messages} {t.msgs}</Badge>
                       </div>
                       <p className="mt-1 text-xs text-slate-400">{formatDate(conv.updatedAt)}</p>
                     </Link>
@@ -133,13 +137,13 @@ export default async function WhatsAppCenterPage() {
               {escalatedConvs > 0 && (
                 <div className="mt-4 rounded-lg bg-red-50 border border-red-100 p-3">
                   <p className="text-sm font-medium text-red-700">
-                    {escalatedConvs} conversación{escalatedConvs !== 1 ? "es" : ""} escalada{escalatedConvs !== 1 ? "s" : ""}
+                    {escalatedConvs} {escalatedConvs !== 1 ? t.escalatedConvsPlural : t.escalatedConvs}
                   </p>
                   <Link
                     href="/portal/conversations"
                     className="mt-1 block text-xs text-red-600 hover:underline"
                   >
-                    Ver todas →
+                    {t.viewAll2}
                   </Link>
                 </div>
               )}

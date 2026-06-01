@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getServerT } from "@/lib/i18n-server";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -27,13 +28,16 @@ export default async function PortalAutomationsPage() {
   const session = await auth();
   if (!session?.user.organizationId) return redirect("/login");
 
-  const automations = await getAutomations(session.user.organizationId);
+  const [t, automations] = await Promise.all([
+    getServerT(),
+    getAutomations(session.user.organizationId),
+  ]);
 
   return (
     <div>
       <PageHeader
-        title="Automatizaciones"
-        description={`${automations.length} automatizaciones configuradas`}
+        title={t.automations}
+        description={`${automations.length} ${t.automationsConfigured}`}
       />
 
       {automations.length === 0 ? (
@@ -41,8 +45,8 @@ export default async function PortalAutomationsPage() {
           <CardContent className="py-0">
             <EmptyState
               icon={Zap}
-              title="Sin automatizaciones aún"
-              description="El equipo de Reymen configurará tus automatizaciones aquí. Puedes solicitarlas desde Solicitudes."
+              title={t.noAutomations}
+              description={t.automationsEmptyDesc}
             />
           </CardContent>
         </Card>
@@ -68,21 +72,21 @@ export default async function PortalAutomationsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
-                  <span>{auto._count.events} eventos totales</span>
+                  <span>{auto._count.events} {t.totalEvents}</span>
                   <div className="flex items-center gap-3">
-                    <span>Creado {formatDate(auto.createdAt)}</span>
+                    <span>{t.createdOn} {formatDate(auto.createdAt)}</span>
                     <Link
                       href={`/portal/automations/${auto.id}`}
                       className="flex items-center gap-1 text-brand-600 hover:text-brand-700 font-medium"
                     >
-                      Ver detalle <ArrowRight className="h-3 w-3" />
+                      {t.viewDetail} <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>
                 </div>
 
                 {auto.events.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-slate-600">Últimos eventos</p>
+                    <p className="text-xs font-medium text-slate-600">{t.latestEvents}</p>
                     {auto.events.map((event) => (
                       <div key={event.id} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
                         <p className="text-xs text-slate-600">{event.type}</p>

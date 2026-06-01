@@ -1,4 +1,7 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { usePreferences } from "@/context/preferences";
 
 interface LeadScoreBadgeProps {
   score: number | null;
@@ -14,18 +17,20 @@ function scoreColor(score: number): string {
   return "bg-red-100 text-red-700 border-red-200";
 }
 
-function scoreLabel(score: number): string {
-  if (score >= 75) return "Alto";
-  if (score >= 50) return "Medio";
-  if (score >= 25) return "Bajo";
-  return "Frío";
-}
-
 export function LeadScoreBadge({ score, reason, showTooltip = false, size = "sm" }: LeadScoreBadgeProps) {
+  const { t } = usePreferences();
+
+  function scoreLabel(s: number): string {
+    if (s >= 75) return t.scoreHigh;
+    if (s >= 50) return t.scoreMid;
+    if (s >= 25) return t.scoreLow;
+    return t.scoreCold;
+  }
+
   if (score === null || score === undefined) {
     return (
       <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-400">
-        Sin score
+        {t.noScore}
       </span>
     );
   }

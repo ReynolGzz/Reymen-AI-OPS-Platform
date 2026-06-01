@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { toggleAssistant } from "@/actions/whatsapp-assistant";
+import { usePreferences } from "@/context/preferences";
 
 interface AssistantToggleProps {
   isActive: boolean;
 }
 
 export function AssistantToggle({ isActive: initialActive }: AssistantToggleProps) {
+  const { t } = usePreferences();
   const [active, setActive] = useState(initialActive);
   const [loading, setLoading] = useState(false);
 
@@ -18,9 +20,9 @@ export function AssistantToggle({ isActive: initialActive }: AssistantToggleProp
     try {
       await toggleAssistant(next);
       setActive(next);
-      toast.success(next ? "Asistente activado" : "Asistente pausado");
+      toast.success(next ? t.assistantActivated : t.assistantPaused);
     } catch {
-      toast.error("Error al cambiar estado");
+      toast.error(t.toggleError);
     } finally {
       setLoading(false);
     }

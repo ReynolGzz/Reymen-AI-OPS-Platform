@@ -11,40 +11,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { upsertWhatsAppAssistant } from "@/actions/whatsapp-assistant";
+import { usePreferences } from "@/context/preferences";
 import type { WhatsAppAssistant } from "@prisma/client";
 
 const schema = z.object({
-  name: z.string().min(1, "Nombre requerido"),
-  greeting: z.string().min(10, "Saludo mínimo de 10 caracteres"),
+  name: z.string().min(1),
+  greeting: z.string().min(10),
   personality: z.string().optional(),
   phoneNumber: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 
-const ALL_CAPABILITIES = [
-  { value: "lead_capture", label: "Captura de leads" },
-  { value: "appointments", label: "Agendar citas" },
-  { value: "faq", label: "Responder preguntas" },
-  { value: "follow_up", label: "Seguimiento" },
-  { value: "qualification", label: "Calificación de leads" },
-  { value: "escalation", label: "Escalación a humano" },
-];
-
 interface AssistantConfigFormProps {
   assistant: WhatsAppAssistant | null;
 }
 
 export function AssistantConfigForm({ assistant }: AssistantConfigFormProps) {
+  const { t } = usePreferences();
   const [loading, setLoading] = useState(false);
   const [capabilities, setCapabilities] = useState<string[]>(
     assistant?.capabilities ?? []
   );
 
+  const ALL_CAPABILITIES = [
+    { value: "lead_capture", label: t.capLeadCapture },
+    { value: "appointments", label: t.capAppointments },
+    { value: "faq", label: t.capFaq },
+    { value: "follow_up", label: t.capFollowUp },
+    { value: "qualification", label: t.capQualification },
+    { value: "escalation", label: t.capEscalation },
+  ];
+
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: assistant?.name ?? "Asistente AI",
+      name: assistant?.name ?? t.assistantNamePlaceholder,
       greeting: assistant?.greeting ?? "¡Hola! Soy el asistente virtual. ¿En qué puedo ayudarte?",
       personality: assistant?.personality ?? "",
       phoneNumber: assistant?.phoneNumber ?? "",
@@ -61,9 +63,9 @@ export function AssistantConfigForm({ assistant }: AssistantConfigFormProps) {
     setLoading(true);
     try {
       await upsertWhatsAppAssistant({ ...data, capabilities });
-      toast.success("Asistente actualizado exitosamente");
+      toast.success(t.assistantSaved);
     } catch {
-      toast.error("Error al guardar configuración");
+      toast.error(t.assistantSaveError);
     } finally {
       setLoading(false);
     }
@@ -73,20 +75,20 @@ export function AssistantConfigForm({ assistant }: AssistantConfigFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label>Nombre del asistente</Label>
-          <Input placeholder="Asistente AI" {...register("name")} />
+          <Label>{t.assistantName}</Label>
+          <Input placeholder={t.assistantNamePlaceholder} {...register("name")} />
           {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
         </div>
         <div className="space-y-2">
-          <Label>Número de WhatsApp Business</Label>
+          <Label>{t.whatsappBusinessNumber}</Label>
           <Input placeholder="+52 55 1234 5678" {...register("phoneNumber")} />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label>Saludo inicial</Label>
+        <Label>{t.initialGreeting}</Label>
         <Textarea
-          placeholder="¡Hola! Soy el asistente virtual de [empresa]..."
+          placeholder={t.greetingPlaceholder}
           rows={3}
           {...register("greeting")}
         />
@@ -94,17 +96,17 @@ export function AssistantConfigForm({ assistant }: AssistantConfigFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label>Personalidad / Estilo</Label>
+        <Label>{t.personalityStyle}</Label>
         <Textarea
-          placeholder="Ej: Soy amable, profesional y conciso. Me enfoco en entender las necesidades del cliente y ofrecer soluciones rápidas..."
+          placeholder={t.personalityPlaceholder}
           rows={3}
           {...register("personality")}
         />
-        <p className="text-xs text-slate-400">Este texto se incluye en el system prompt del asistente.</p>
+        <p className="text-xs text-slate-400">{t.personalityHint}</p>
       </div>
 
       <div className="space-y-3">
-        <Label>Capacidades activas</Label>
+        <Label>{t.activeCapabilities}</Label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {ALL_CAPABILITIES.map((cap) => (
             <button
@@ -126,7 +128,7 @@ export function AssistantConfigForm({ assistant }: AssistantConfigFormProps) {
       <div className="flex justify-end">
         <Button type="submit" disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Guardar configuración
+          {t.saveConfig}
         </Button>
       </div>
     </form>
