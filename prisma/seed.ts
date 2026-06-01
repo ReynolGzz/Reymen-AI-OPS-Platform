@@ -50,6 +50,31 @@ async function main() {
   });
   console.log(`✅ Demo org: ${demoOrg.name}`);
 
+  // ─── Taller Wolf Organization ──────────────────────────────────────
+  const wolfPassword = await bcrypt.hash("Wolf$Ricardo2024", 12);
+  const wolfOrg = await prisma.organization.upsert({
+    where: { slug: "taller-wolf" },
+    update: {},
+    create: {
+      name: "Taller Automotriz Wolf",
+      slug: "taller-wolf",
+      industry: "workshop",
+      plan: "starter",
+      isActive: true,
+      users: {
+        create: {
+          name: "Ricardo Wolf",
+          email: "ricardo@tallerwolf.com",
+          passwordHash: wolfPassword,
+          role: "OWNER",
+          isActive: true,
+        },
+      },
+    },
+    include: { users: true },
+  });
+  console.log(`✅ Wolf org: ${wolfOrg.name} | Usuario: ${wolfOrg.users[0]?.name ?? "ya existía"}`);
+
   // ─── Automations ──────────────────────────────────────────────────
   const automation1 = await prisma.automation.upsert({
     where: { id: "auto-demo-1" },
@@ -459,8 +484,9 @@ Una vez obtenidos estos datos, confirma la información y ofrece agendar la cita
 
   console.log("\n✅ Seed completed successfully!");
   console.log("\n📋 Demo credentials:");
-  console.log("  Admin → admin@reymen.io / admin123456");
-  console.log("  Client → carlos@clinicasanrafael.com / client123456");
+  console.log("  Admin  → admin@reymen.io / admin123456");
+  console.log("  Clínica → carlos@clinicasanrafael.com / client123456");
+  console.log("  Wolf   → ricardo@tallerwolf.com / Wolf$Ricardo2024");
 }
 
 main()
