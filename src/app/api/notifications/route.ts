@@ -31,7 +31,7 @@ export async function GET() {
       type: "escalation",
       label: "Conversación escalada",
       detail: c.contactName ?? "Sin nombre",
-      href: isPortal ? "/portal/conversations" : "/admin/conversations",
+      href: isPortal ? "/portal/conversations" : "/admin/escalations",
     })),
     ...openRequests.map((r) => ({
       type: "request",

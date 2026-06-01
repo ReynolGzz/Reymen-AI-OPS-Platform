@@ -51,6 +51,26 @@ body {
   /* Brand tints — dark equivalents */
   --color-brand-50: #0f1a3a;
   --color-brand-100: #162040;
+
+  /* Keep text truly white on colored backgrounds */
+  --color-true-white: #ffffff;
+}
+
+/* Brand buttons always need white text */
+.dark [class*="bg-brand-5"],
+.dark [class*="bg-brand-6"],
+.dark [class*="bg-brand-7"],
+.dark [class*="bg-brand-8"],
+.dark [class*="bg-brand-9"] {
+  color: #ffffff;
+}
+.dark [class*="bg-red-5"],
+.dark [class*="bg-red-6"] {
+  color: #ffffff;
+}
+.dark [class*="bg-emerald-5"],
+.dark [class*="bg-emerald-6"] {
+  color: #ffffff;
 }
 
 /* Dark mode shadows — make them deeper */

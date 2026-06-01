@@ -35,6 +35,7 @@ function applyTheme(theme: Theme) {
   } else {
     document.documentElement.classList.remove("dark");
   }
+  document.cookie = `reymen-theme=${theme}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 }
 
 function applyLang(lang: Lang) {

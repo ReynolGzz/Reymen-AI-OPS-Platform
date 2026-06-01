@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useTransition } from "react";
 import {
   Bell, LogOut, MessageSquare, FileText, Sun, Moon, Globe,
-  Image as ImageIcon, KeyRound, RefreshCw, User, Loader2,
+  Image as ImageIcon, KeyRound, RefreshCw, User, Loader2, Upload,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
@@ -17,6 +17,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const AVATAR_PRESETS = [
+  "https://api.dicebear.com/9.x/adventurer/svg?seed=alpha",
+  "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=beta",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=gamma",
+  "https://api.dicebear.com/9.x/lorelei/svg?seed=delta",
+  "https://api.dicebear.com/9.x/micah/svg?seed=epsilon",
+  "https://api.dicebear.com/9.x/personas/svg?seed=zeta",
+  "https://api.dicebear.com/9.x/pixel-art/svg?seed=eta",
+  "https://api.dicebear.com/9.x/rings/svg?seed=theta",
+];
 
 interface NotificationItem {
   type: string;
@@ -58,9 +69,10 @@ export function TopBar({ title }: TopBarProps) {
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
 
   // Avatar dialog state
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [userImage, setUserImage] = useState<string | null>(session?.user?.image ?? null);
   const [isPendingAvatar, startAvatarTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Password dialog state
   const [pwdForm, setPwdForm] = useState({ current: "", next: "", confirm: "" });
@@ -117,36 +129,72 @@ export function TopBar({ title }: TopBarProps) {
   }
 
   function openDialog(dialog: ActiveDialog) {
+    if (dialog === "avatar") {
+      openAvatarDialog();
+      return;
+    }
     setUserMenuOpen(false);
     setActiveDialog(dialog);
-    if (dialog === "avatar") {
-      setAvatarUrl(userImage ?? "");
-    }
     if (dialog === "password") {
       setPwdForm({ current: "", next: "", confirm: "" });
     }
   }
 
-  function handleSaveAvatar() {
-    if (!avatarUrl) {
-      startAvatarTransition(async () => {
-        try {
-          await removeAvatar();
-          setUserImage(null);
-          setActiveDialog(null);
-          toast.success(lang === "es" ? "Avatar eliminado" : "Avatar removed");
-        } catch (e) {
-          toast.error(e instanceof Error ? e.message : t.error);
-        }
-      });
+  function openAvatarDialog() {
+    setAvatarPreview(userImage);
+    setUserMenuOpen(false);
+    setActiveDialog("avatar");
+  }
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(lang === "es" ? "Imagen demasiado grande (máx. 5MB)" : "Image too large (max 5MB)");
       return;
     }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const size = 200;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d")!;
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+        setAvatarPreview(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = event.target!.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleSaveAvatar() {
+    if (!avatarPreview) return;
     startAvatarTransition(async () => {
       try {
-        await updateAvatar(avatarUrl);
-        setUserImage(avatarUrl);
+        await updateAvatar(avatarPreview);
+        setUserImage(avatarPreview);
         setActiveDialog(null);
         toast.success(lang === "es" ? "Avatar actualizado" : "Avatar updated");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t.error);
+      }
+    });
+  }
+
+  function handleRemoveAvatar() {
+    startAvatarTransition(async () => {
+      try {
+        await removeAvatar();
+        setUserImage(null);
+        setAvatarPreview(null);
+        setActiveDialog(null);
+        toast.success(lang === "es" ? "Avatar eliminado" : "Avatar removed");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t.error);
       }
@@ -179,10 +227,16 @@ export function TopBar({ title }: TopBarProps) {
 
   return (
     <>
-      <header className="relative flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
-        {title && <p className="text-sm text-slate-500">{title}</p>}
-
-        <div className="ml-auto flex items-center gap-2">
+      <header className="relative flex h-16 shrink-0 items-center border-b border-slate-200 bg-white px-6">
+        <div className="flex-1">
+          {title && <p className="text-sm text-slate-500">{title}</p>}
+        </div>
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-none select-none">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Reymen</span>
+          <span className="h-3 w-px bg-slate-300" />
+          <span className="text-xs font-medium text-brand-600 uppercase tracking-widest">Platform</span>
+        </div>
+        <div className="flex-1 flex items-center justify-end gap-2">
           {/* ── Notification bell ─────────────────────────────── */}
           <button
             ref={notifBtnRef}
@@ -393,9 +447,10 @@ export function TopBar({ title }: TopBarProps) {
         </div>
       </header>
 
+
       {/* ── Avatar Dialog ──────────────────────────────────────────── */}
       <Dialog open={activeDialog === "avatar"} onOpenChange={(o) => !o && setActiveDialog(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-brand-600" />
@@ -403,20 +458,46 @@ export function TopBar({ title }: TopBarProps) {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {avatarUrl && (
+            {/* Preview */}
+            {avatarPreview && (
               <div className="flex justify-center">
-                <img src={avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover ring-4 ring-brand-100" />
+                <img src={avatarPreview} alt="" className="h-20 w-20 rounded-full object-cover ring-4 ring-brand-100" />
               </div>
             )}
-            <div className="space-y-1.5">
-              <Label htmlFor="avatar-url">{t.imageUrl}</Label>
-              <Input
-                id="avatar-url"
-                type="url"
-                placeholder="https://..."
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
+
+            {/* Preset grid */}
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{lang === "es" ? "Avatares predefinidos" : "Preset avatars"}</p>
+              <div className="grid grid-cols-4 gap-2">
+                {AVATAR_PRESETS.map((url) => (
+                  <button
+                    key={url}
+                    onClick={() => setAvatarPreview(url)}
+                    className={cn(
+                      "rounded-full overflow-hidden border-2 transition-all",
+                      avatarPreview === url ? "border-brand-600 scale-105" : "border-transparent hover:border-brand-300"
+                    )}
+                  >
+                    <img src={url} alt="" className="h-14 w-14 object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* File upload */}
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{lang === "es" ? "O sube desde tu dispositivo" : "Or upload from your device"}</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileUpload}
               />
+              <Button variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" />
+                {lang === "es" ? "Elegir imagen" : "Choose image"}
+              </Button>
             </div>
           </div>
           <DialogFooter>
@@ -425,13 +506,13 @@ export function TopBar({ title }: TopBarProps) {
               <Button
                 variant="outline"
                 className="text-red-600 border-red-200 hover:bg-red-50"
-                onClick={handleSaveAvatar}
+                onClick={handleRemoveAvatar}
                 disabled={isPendingAvatar}
               >
                 {isPendingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : t.removeLogo}
               </Button>
             )}
-            <Button onClick={handleSaveAvatar} disabled={isPendingAvatar || !avatarUrl}>
+            <Button onClick={handleSaveAvatar} disabled={isPendingAvatar || !avatarPreview}>
               {isPendingAvatar ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               {t.save}
             </Button>

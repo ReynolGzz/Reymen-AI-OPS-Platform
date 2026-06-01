@@ -8,19 +8,23 @@ import { auth } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import type { UserRole } from "@prisma/client";
 
-export async function updateAvatar(imageUrl: string) {
+export async function updateAvatar(imageData: string) {
   const session = await auth();
   if (!session?.user.id) throw new Error("No autorizado");
 
-  const parsed = z.string().url("URL inválida").safeParse(imageUrl);
-  if (!parsed.success) throw new Error("URL de imagen inválida");
+  const isDataUri = imageData.startsWith("data:image/");
+  const isUrl = imageData.startsWith("http://") || imageData.startsWith("https://");
+
+  if (!isDataUri && !isUrl) throw new Error("Formato de imagen inválido");
+  if (isDataUri && imageData.length > 300 * 1024) throw new Error("Imagen demasiado grande (máx. 300KB)");
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { image: imageUrl },
+    data: { image: imageData },
   });
 
   revalidatePath("/portal");
+  revalidatePath("/admin");
   return { success: true };
 }
 
