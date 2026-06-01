@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getServerT } from "@/lib/i18n-server";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,13 +7,9 @@ import { UpdateRequestStatusSelect } from "@/components/admin/UpdateRequestStatu
 import { formatDate } from "@/lib/utils";
 import { FileText } from "lucide-react";
 
-const PRIORITY_LABELS: Record<string, string> = {
-  low: "Baja",
-  medium: "Media",
-  high: "Alta",
-};
+type PriorityVariant = "secondary" | "warning" | "destructive";
 
-const PRIORITY_VARIANT: Record<string, "secondary" | "warning" | "destructive"> = {
+const PRIORITY_VARIANT: Record<string, PriorityVariant> = {
   low: "secondary",
   medium: "warning",
   high: "destructive",
@@ -21,28 +18,32 @@ const PRIORITY_VARIANT: Record<string, "secondary" | "warning" | "destructive"> 
 async function getRequests() {
   return prisma.request.findMany({
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    include: {
-      organization: { select: { name: true } },
-    },
+    include: { organization: { select: { name: true } } },
   });
 }
 
 export default async function AdminRequestsPage() {
-  const requests = await getRequests();
+  const [t, requests] = await Promise.all([getServerT(), getRequests()]);
   const openCount = requests.filter((r) => r.status === "OPEN").length;
+
+  const priorityLabels: Record<string, string> = {
+    low: t.adminPriorityLow,
+    medium: t.adminPriorityMedium,
+    high: t.adminPriorityHigh,
+  };
 
   return (
     <div>
       <PageHeader
-        title="Solicitudes"
-        description={`${openCount} abiertas · ${requests.length} total`}
+        title={t.requests}
+        description={`${openCount} ${t.adminOpenPlural} · ${requests.length} ${t.requestsTotal}`}
       />
 
       {requests.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
             <FileText className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-            <p className="text-sm text-slate-500">Sin solicitudes aún</p>
+            <p className="text-sm text-slate-500">{t.adminNoRequestsYet}</p>
           </CardContent>
         </Card>
       ) : (
@@ -50,12 +51,12 @@ export default async function AdminRequestsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Solicitud</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Cliente</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Tipo</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Prioridad</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Fecha</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.adminColRequest}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.adminColClient}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.adminColType}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.adminColPriority}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colStatus}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.adminColDate}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -71,7 +72,7 @@ export default async function AdminRequestsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant={PRIORITY_VARIANT[req.priority] ?? "secondary"}>
-                      {PRIORITY_LABELS[req.priority] ?? req.priority}
+                      {priorityLabels[req.priority] ?? req.priority}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getServerT } from "@/lib/i18n-server";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,25 +18,33 @@ async function getSystemStats() {
 }
 
 export default async function AdminSettingsPage() {
-  const session = await auth();
-  const stats = await getSystemStats();
+  const [session, t, stats] = await Promise.all([auth(), getServerT(), getSystemStats()]);
+
+  const systemStatRows = [
+    { label: t.adminActiveOrgs, value: stats.totalOrgs },
+    { label: t.adminActiveUsers, value: stats.totalUsers },
+    { label: t.totalLeads, value: stats.totalLeads.toLocaleString("en-US") },
+    { label: t.automations, value: stats.totalAutomations },
+    { label: t.adminPublishedTemplates, value: stats.totalTemplates },
+    { label: t.adminActiveInstallations, value: stats.activeInstallations },
+  ];
+
+  const sessionRows = [
+    { label: t.adminUserLabel, value: session?.user.name ?? "—" },
+    { label: "Email", value: session?.user.email ?? "—" },
+    { label: t.adminRoleLabel, value: <Badge variant="secondary" className="capitalize">{session?.user.role?.toLowerCase()}</Badge> },
+    { label: "ID", value: <span className="font-mono text-xs text-slate-400">{session?.user.id?.slice(-12)}</span> },
+  ];
 
   return (
     <div>
-      <PageHeader title="Configuración del sistema" description="Estado de la plataforma Reymen AI Ops" />
+      <PageHeader title={t.adminSettingsTitle} description={t.adminSettingsDesc} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Estadísticas del sistema</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.adminSystemStats}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {[
-              { label: "Organizaciones activas", value: stats.totalOrgs },
-              { label: "Usuarios activos", value: stats.totalUsers },
-              { label: "Leads totales", value: stats.totalLeads.toLocaleString("en-US") },
-              { label: "Automatizaciones", value: stats.totalAutomations },
-              { label: "Templates publicados", value: stats.totalTemplates },
-              { label: "Instalaciones activas", value: stats.activeInstallations },
-            ].map(({ label, value }) => (
+            {systemStatRows.map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between text-sm">
                 <span className="text-slate-500">{label}</span>
                 <span className="font-bold text-slate-900">{value}</span>
@@ -45,14 +54,9 @@ export default async function AdminSettingsPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Sesión actual</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.adminCurrentSession}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {[
-              { label: "Usuario", value: session?.user.name ?? "—" },
-              { label: "Email", value: session?.user.email ?? "—" },
-              { label: "Rol", value: <Badge variant="secondary" className="capitalize">{session?.user.role?.toLowerCase()}</Badge> },
-              { label: "ID", value: <span className="font-mono text-xs text-slate-400">{session?.user.id?.slice(-12)}</span> },
-            ].map(({ label, value }) => (
+            {sessionRows.map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between text-sm">
                 <span className="text-slate-500">{label}</span>
                 <span className="font-medium text-slate-900">{value}</span>
@@ -62,7 +66,7 @@ export default async function AdminSettingsPage() {
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Variables de entorno requeridas</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.adminRequiredEnvVars}</CardTitle></CardHeader>
           <CardContent>
             <div className="rounded-lg bg-slate-950 p-4 font-mono text-xs text-slate-300 space-y-1">
               {[
@@ -81,7 +85,7 @@ export default async function AdminSettingsPage() {
               ))}
             </div>
             <p className="mt-3 text-xs text-slate-400">
-              Configura estas variables en tu archivo <code className="font-mono bg-slate-100 px-1 rounded">.env</code> o en tu proveedor de hosting.
+              {t.adminEnvVarInfo}
             </p>
           </CardContent>
         </Card>

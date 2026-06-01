@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getServerT } from "@/lib/i18n-server";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/shared/MetricCard";
@@ -30,15 +31,8 @@ async function getGlobalMetrics() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const [
-    totalLeads,
-    totalAutomations,
-    totalClients,
-    totalConversations,
-    eventsByStatus,
-    leadsByStatus,
-    clientsByPlan,
-    recentLeads,
-    templateInstallations,
+    totalLeads, totalAutomations, totalClients, totalConversations,
+    eventsByStatus, leadsByStatus, clientsByPlan, recentLeads, templateInstallations,
   ] = await Promise.all([
     prisma.lead.count({ where: { deletedAt: null } }),
     prisma.automation.count(),
@@ -60,13 +54,8 @@ async function getGlobalMetrics() {
   };
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  NEW: "Nuevos", CONTACTED: "Contactados", QUALIFIED: "Calificados",
-  PROPOSAL: "Propuesta", WON: "Ganados", LOST: "Perdidos",
-};
-
 export default async function AdminMetricsPage() {
-  const metrics = await getGlobalMetrics();
+  const [t, metrics] = await Promise.all([getServerT(), getGlobalMetrics()]);
 
   const successEvents = metrics.eventsByStatus.find((e) => e.status === "SUCCESS")?._count.id ?? 0;
   const failedEvents = metrics.eventsByStatus.find((e) => e.status === "FAILED")?._count.id ?? 0;
@@ -75,55 +64,54 @@ export default async function AdminMetricsPage() {
   const wonLeads = metrics.leadsByStatus.find((l) => l.status === "WON")?._count.id ?? 0;
   const trendData = buildLeadTrend(metrics.recentLeads);
 
+  const statusLabels: Record<string, string> = {
+    NEW: t.funnelNew, CONTACTED: t.funnelContacted, QUALIFIED: t.funnelQualified,
+    PROPOSAL: t.funnelProposal, WON: t.funnelWon, LOST: t.funnelLost,
+  };
+
   return (
     <div>
-      <PageHeader title="Métricas globales" description="Visión general de toda la plataforma" />
+      <PageHeader title={t.adminMetricsTitle} description={t.adminMetricsDesc} />
 
       <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
-        <MetricCard title="Clientes activos" value={metrics.totalClients} icon={Users} iconClassName="bg-blue-50" />
-        <MetricCard title="Leads totales" value={metrics.totalLeads} icon={TrendingUp} iconClassName="bg-brand-50" />
-        <MetricCard title="Automatizaciones" value={metrics.totalAutomations} icon={Zap} />
-        <MetricCard title="Conversaciones" value={metrics.totalConversations} icon={Activity} />
+        <MetricCard title={t.adminActiveClients} value={metrics.totalClients} icon={Users} iconClassName="bg-blue-50" />
+        <MetricCard title={t.totalLeads} value={metrics.totalLeads} icon={TrendingUp} iconClassName="bg-brand-50" />
+        <MetricCard title={t.automations} value={metrics.totalAutomations} icon={Zap} />
+        <MetricCard title={t.conversations} value={metrics.totalConversations} icon={Activity} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
         <Card>
-          <CardHeader><CardTitle>Leads globales — últimos 30 días</CardTitle></CardHeader>
-          <CardContent>
-            <LeadTrendChart data={trendData} />
-          </CardContent>
+          <CardHeader><CardTitle>{t.adminGlobalLeadsTrend}</CardTitle></CardHeader>
+          <CardContent><LeadTrendChart data={trendData} /></CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
-              Salud de automatizaciones
+              {t.automationHealth}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <AutomationHealthChart
-              success={successEvents}
-              failed={failedEvents}
-              pending={pendingEvents}
-            />
+            <AutomationHealthChart success={successEvents} failed={failedEvents} pending={pendingEvents} />
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card>
-          <CardHeader><CardTitle>Leads por estado (global)</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.adminLeadsByStatusGlobal}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-3">
               {metrics.leadsByStatus.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-4">Sin datos</p>
+                <p className="text-sm text-slate-400 text-center py-4">{t.noData}</p>
               ) : (
                 metrics.leadsByStatus
                   .sort((a, b) => b._count.id - a._count.id)
                   .map((item) => (
                     <div key={item.status} className="flex justify-between text-sm">
-                      <span className="text-slate-600">{STATUS_LABELS[item.status] ?? item.status}</span>
+                      <span className="text-slate-600">{statusLabels[item.status] ?? item.status}</span>
                       <span className="font-semibold">{item._count.id}</span>
                     </div>
                   ))
@@ -136,13 +124,13 @@ export default async function AdminMetricsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
-              Clientes por plan
+              {t.adminClientsByPlan}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {metrics.clientsByPlan.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-4">Sin datos</p>
+                <p className="text-sm text-slate-400 text-center py-4">{t.noData}</p>
               ) : (
                 metrics.clientsByPlan
                   .sort((a, b) => b._count.id - a._count.id)
@@ -151,7 +139,7 @@ export default async function AdminMetricsPage() {
                       <Badge variant="secondary" className="capitalize">
                         {PLAN_LIMITS[item.plan]?.label ?? item.plan}
                       </Badge>
-                      <span className="font-semibold">{item._count.id} clientes</span>
+                      <span className="font-semibold">{item._count.id} {t.adminClientsUnit}</span>
                     </div>
                   ))
               )}
@@ -160,15 +148,15 @@ export default async function AdminMetricsPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Resumen de eventos</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.adminEventsSummary}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-3">
               {[
-                { label: "Total de eventos", value: totalEvents, color: "text-slate-900" },
-                { label: "Exitosos", value: successEvents, color: "text-emerald-600" },
-                { label: "Fallidos", value: failedEvents, color: "text-red-500" },
-                { label: "Templates instalados", value: metrics.templateInstallations, color: "text-brand-600" },
-                { label: "Leads ganados", value: wonLeads, color: "text-emerald-600" },
+                { label: t.adminTotalEvents, value: totalEvents, color: "text-slate-900" },
+                { label: t.adminSuccessful, value: successEvents, color: "text-emerald-600" },
+                { label: t.adminFailed, value: failedEvents, color: "text-red-500" },
+                { label: t.adminTemplatesInstalled, value: metrics.templateInstallations, color: "text-brand-600" },
+                { label: t.wonLeads, value: wonLeads, color: "text-emerald-600" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="flex items-center justify-between text-sm">
                   <span className="text-slate-500">{label}</span>
@@ -182,7 +170,7 @@ export default async function AdminMetricsPage() {
                     <div className="bg-red-400" style={{ width: `${(failedEvents / totalEvents) * 100}%` }} />
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    {Math.round((successEvents / totalEvents) * 100)}% tasa de éxito global
+                    {Math.round((successEvents / totalEvents) * 100)}% {t.adminSuccessRate}
                   </p>
                 </div>
               )}

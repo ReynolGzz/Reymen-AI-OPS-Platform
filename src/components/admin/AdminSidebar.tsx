@@ -17,22 +17,24 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/clients", label: "Clientes", icon: Users },
-  { href: "/admin/automations", label: "Automatizaciones", icon: Zap },
-  { href: "/admin/escalations", label: "Escalaciones", icon: AlertTriangle },
-  { href: "/admin/requests", label: "Solicitudes", icon: MessageSquare },
-  { href: "/admin/templates", label: "Templates", icon: Layers },
-  { href: "/admin/metrics", label: "Métricas", icon: BarChart3 },
-  { href: "/admin/audit", label: "Auditoría", icon: Shield },
-  { href: "/admin/api-docs", label: "API Docs", icon: Code },
-  { href: "/admin/settings", label: "Configuración", icon: Settings },
-];
+import { usePreferences } from "@/context/preferences";
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const { t } = usePreferences();
+
+  const navItems = [
+    { href: "/admin/dashboard", label: t.dashboard, icon: LayoutDashboard },
+    { href: "/admin/clients", label: t.adminNavClients, icon: Users },
+    { href: "/admin/automations", label: t.automations, icon: Zap },
+    { href: "/admin/escalations", label: t.adminNavEscalations, icon: AlertTriangle },
+    { href: "/admin/requests", label: t.requests, icon: MessageSquare },
+    { href: "/admin/templates", label: t.templates, icon: Layers },
+    { href: "/admin/metrics", label: t.adminNavMetrics, icon: BarChart3 },
+    { href: "/admin/audit", label: t.adminNavAudit, icon: Shield },
+    { href: "/admin/api-docs", label: "API Docs", icon: Code },
+    { href: "/admin/settings", label: t.settings, icon: Settings },
+  ];
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white">
@@ -79,7 +81,7 @@ export function AdminSidebar() {
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
         >
           <LogOut className="h-4 w-4" />
-          Cerrar sesión
+          {t.signOut}
         </button>
       </div>
     </aside>

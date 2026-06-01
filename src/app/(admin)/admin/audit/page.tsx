@@ -1,21 +1,27 @@
 import { prisma } from "@/lib/prisma";
+import { getServerT } from "@/lib/i18n-server";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+import type { Strings } from "@/lib/i18n";
 
-const ACTION_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "success" | "destructive" | "warning" | "info" | "outline" }> = {
-  "client.create":       { label: "Cliente creado",       variant: "success" },
-  "client.plan_change":  { label: "Plan cambiado",        variant: "info" },
-  "team.invite":         { label: "Usuario invitado",     variant: "success" },
-  "team.remove":         { label: "Usuario removido",     variant: "warning" },
-  "template.install":    { label: "Template instalado",   variant: "success" },
-  "template.uninstall":  { label: "Template desinstalado",variant: "warning" },
-  "lead.create":         { label: "Lead creado",          variant: "default" },
-  "lead.delete":         { label: "Lead eliminado",       variant: "destructive" },
-  "prompt.activate":     { label: "Prompt activado",      variant: "info" },
-};
+type BadgeVariant = "default" | "secondary" | "success" | "destructive" | "warning" | "info" | "outline";
+
+function buildActionLabels(t: Strings): Record<string, { label: string; variant: BadgeVariant }> {
+  return {
+    "client.create":       { label: t.adminActionClientCreate,       variant: "success" },
+    "client.plan_change":  { label: t.adminActionPlanChange,         variant: "info" },
+    "team.invite":         { label: t.adminActionTeamInvite,         variant: "success" },
+    "team.remove":         { label: t.adminActionTeamRemove,         variant: "warning" },
+    "template.install":    { label: t.adminActionTemplateInstall,    variant: "success" },
+    "template.uninstall":  { label: t.adminActionTemplateUninstall,  variant: "warning" },
+    "lead.create":         { label: t.adminActionLeadCreate,         variant: "default" },
+    "lead.delete":         { label: t.adminActionLeadDelete,         variant: "destructive" },
+    "prompt.activate":     { label: t.adminActionPromptActivate,     variant: "info" },
+  };
+}
 
 async function getAuditLogs(orgId?: string) {
   const [logs, orgs] = await Promise.all([
@@ -23,9 +29,7 @@ async function getAuditLogs(orgId?: string) {
       where: orgId ? { organizationId: orgId } : {},
       orderBy: { createdAt: "desc" },
       take: 200,
-      include: {
-        organization: { select: { name: true } },
-      },
+      include: { organization: { select: { name: true } } },
     }),
     prisma.organization.findMany({
       where: { isActive: true },
@@ -42,23 +46,24 @@ export default async function AdminAuditPage({
   searchParams: Promise<{ org?: string }>;
 }) {
   const { org } = await searchParams;
-  const { logs, orgs } = await getAuditLogs(org);
+  const [t, { logs, orgs }] = await Promise.all([getServerT(), getAuditLogs(org)]);
+  const actionLabels = buildActionLabels(t);
 
   return (
     <div>
       <PageHeader
-        title="Auditoría"
-        description={`${logs.length} eventos registrados${org ? " (filtrado)" : ""}`}
+        title={t.adminAuditTitle}
+        description={`${logs.length} ${t.adminEventsRegistered}${org ? " (filtrado)" : ""}`}
       />
 
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex items-center gap-2 flex-wrap">
         <a
           href="/admin/audit"
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             !org ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-100"
           }`}
         >
-          Todos
+          {t.adminFilterAll}
         </a>
         {orgs.map((o) => (
           <a
@@ -77,18 +82,16 @@ export default async function AdminAuditPage({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Log de actividad
+            {t.adminActivityLog}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {logs.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-400">
-              Sin eventos de auditoría registrados
-            </p>
+            <p className="py-8 text-center text-sm text-slate-400">{t.adminNoAuditEvents}</p>
           ) : (
             <div className="divide-y divide-slate-100">
               {logs.map((log) => {
-                const cfg = ACTION_LABELS[log.action];
+                const cfg = actionLabels[log.action];
                 return (
                   <div key={log.id} className="flex items-start gap-3 py-3">
                     <div className="flex-1 min-w-0">

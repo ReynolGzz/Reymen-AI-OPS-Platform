@@ -2,13 +2,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Zap, Users, FileText, Layers } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getServerT } from "@/lib/i18n-server";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ChangePlanDialog } from "@/components/admin/ChangePlanDialog";
 import { formatDate } from "@/lib/utils";
-import { PLAN_LIMITS } from "@/lib/permissions";
 
 async function getClientDetail(clientId: string) {
   return prisma.organization.findUnique({
@@ -16,9 +16,7 @@ async function getClientDetail(clientId: string) {
     include: {
       users: { select: { id: true, name: true, email: true, role: true, isActive: true } },
       automations: {
-        include: {
-          events: { take: 5, orderBy: { createdAt: "desc" } },
-        },
+        include: { events: { take: 5, orderBy: { createdAt: "desc" } } },
         orderBy: { createdAt: "desc" },
       },
       leads: {
@@ -26,10 +24,7 @@ async function getClientDetail(clientId: string) {
         orderBy: { createdAt: "desc" },
         where: { deletedAt: null },
       },
-      requests: {
-        take: 5,
-        orderBy: { createdAt: "desc" },
-      },
+      requests: { take: 5, orderBy: { createdAt: "desc" } },
       templateInstallations: {
         include: {
           template: { select: { id: true, name: true, iconEmoji: true, industry: true } },
@@ -44,62 +39,60 @@ async function getClientDetail(clientId: string) {
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
-  const client = await getClientDetail(clientId);
+  const [t, client] = await Promise.all([getServerT(), getClientDetail(clientId)]);
   if (!client) notFound();
 
   return (
     <div>
       <div className="mb-4">
         <Link href="/admin/clients" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-          <ArrowLeft className="h-4 w-4" /> Volver a clientes
+          <ArrowLeft className="h-4 w-4" /> {t.adminBackToClients}
         </Link>
       </div>
 
       <PageHeader
         title={client.name}
-        description={`${client.slug} · ${client.industry ?? "Sin industria"}`}
+        description={`${client.slug} · ${client.industry ?? t.adminNoIndustry}`}
         actions={
           <div className="flex items-center gap-2">
             <ChangePlanDialog orgId={client.id} currentPlan={client.plan} />
             <Badge variant={client.isActive ? "success" : "destructive"}>
-              {client.isActive ? "Activo" : "Inactivo"}
+              {client.isActive ? t.statusActive : t.inactive}
             </Badge>
           </div>
         }
       />
 
-      {/* Stats row */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-slate-900">{client._count.leads}</p>
-            <p className="text-xs text-slate-500 mt-1">Leads totales</p>
+            <p className="text-xs text-slate-500 mt-1">{t.totalLeads}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-slate-900">{client._count.automations}</p>
-            <p className="text-xs text-slate-500 mt-1">Automatizaciones</p>
+            <p className="text-xs text-slate-500 mt-1">{t.automations}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-slate-900">{client._count.conversations}</p>
-            <p className="text-xs text-slate-500 mt-1">Conversaciones</p>
+            <p className="text-xs text-slate-500 mt-1">{t.conversations}</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Automations */}
         <Card>
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Automatizaciones</CardTitle>
+            <CardTitle>{t.automations}</CardTitle>
             <Zap className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             {client.automations.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">Sin automatizaciones asignadas</p>
+              <p className="text-sm text-slate-400 text-center py-4">{t.adminNoAutomationsAssigned}</p>
             ) : (
               <div className="space-y-3">
                 {client.automations.map((auto) => (
@@ -116,15 +109,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
           </CardContent>
         </Card>
 
-        {/* Recent Leads */}
         <Card>
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Leads recientes</CardTitle>
+            <CardTitle>{t.recentLeads}</CardTitle>
             <Users className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             {client.leads.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">Sin leads aún</p>
+              <p className="text-sm text-slate-400 text-center py-4">{t.adminNoLeadsShort}</p>
             ) : (
               <div className="space-y-3">
                 {client.leads.map((lead) => (
@@ -141,10 +133,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
           </CardContent>
         </Card>
 
-        {/* Users */}
         <Card>
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Usuarios</CardTitle>
+            <CardTitle>{t.users}</CardTitle>
             <Users className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
@@ -152,7 +143,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
               {client.users.map((user) => (
                 <div key={user.id} className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{user.name ?? "Sin nombre"}</p>
+                    <p className="text-sm font-medium text-slate-900">{user.name ?? t.noName}</p>
                     <p className="text-xs text-slate-400">{user.email}</p>
                   </div>
                   <Badge variant="secondary" className="capitalize">{user.role.toLowerCase()}</Badge>
@@ -162,15 +153,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
           </CardContent>
         </Card>
 
-        {/* Requests */}
         <Card>
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Solicitudes recientes</CardTitle>
+            <CardTitle>{t.adminRecentRequests}</CardTitle>
             <FileText className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             {client.requests.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">Sin solicitudes</p>
+              <p className="text-sm text-slate-400 text-center py-4">{t.adminNoRequestsShort}</p>
             ) : (
               <div className="space-y-3">
                 {client.requests.map((req) => (
@@ -187,22 +177,18 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
           </CardContent>
         </Card>
 
-        {/* Template Installations */}
         <Card className="lg:col-span-2">
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Templates instalados</CardTitle>
+            <CardTitle>{t.adminInstalledTemplates}</CardTitle>
             <Layers className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             {client.templateInstallations.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">Sin templates instalados</p>
+              <p className="text-sm text-slate-400 text-center py-4">{t.adminNoTemplates}</p>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {client.templateInstallations.map((inst) => (
-                  <div
-                    key={inst.id}
-                    className="flex items-center gap-3 rounded-lg border border-slate-100 p-3"
-                  >
+                  <div key={inst.id} className="flex items-center gap-3 rounded-lg border border-slate-100 p-3">
                     <span className="text-2xl leading-none flex-shrink-0">{inst.template.iconEmoji}</span>
                     <div className="min-w-0 flex-1">
                       <Link
@@ -219,7 +205,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
                       variant={inst.status === "ACTIVE" ? "success" : "secondary"}
                       className="text-xs flex-shrink-0"
                     >
-                      {inst.status === "ACTIVE" ? "Activo" : inst.status}
+                      {inst.status === "ACTIVE" ? t.statusActive : inst.status}
                     </Badge>
                   </div>
                 ))}
