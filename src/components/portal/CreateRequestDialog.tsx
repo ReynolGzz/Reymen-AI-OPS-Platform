@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createRequest } from "@/actions/requests";
+import { usePreferences } from "@/context/preferences";
 
 const schema = z.object({
   title: z.string().min(1, "Título requerido"),
@@ -26,6 +27,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export function CreateRequestDialog() {
+  const { t } = usePreferences();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -40,11 +42,11 @@ export function CreateRequestDialog() {
     Object.entries(data).forEach(([k, v]) => fd.append(k, v));
     try {
       await createRequest(fd);
-      toast.success("Solicitud enviada exitosamente");
+      toast.success(t.reqSuccessMsg);
       reset();
       setOpen(false);
     } catch {
-      toast.error("Error al enviar solicitud");
+      toast.error(t.reqErrorMsg);
     } finally {
       setLoading(false);
     }
@@ -55,51 +57,51 @@ export function CreateRequestDialog() {
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="h-4 w-4" />
-          Nueva solicitud
+          {t.newRequestBtn}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Enviar solicitud al equipo Reymen</DialogTitle>
+          <DialogTitle>{t.sendRequestTitle}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label>Título *</Label>
-            <Input placeholder="Descripción breve de la solicitud" {...register("title")} />
+            <Label>{t.reqTitleLabel} *</Label>
+            <Input placeholder={t.reqTitleLabel} {...register("title")} />
             {errors.title && <p className="text-xs text-red-500">{errors.title.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Tipo</Label>
+              <Label>{t.adminColType}</Label>
               <Select onValueChange={(v) => setValue("type", v as FormData["type"])}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t.reqSelect} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="support">Soporte</SelectItem>
-                  <SelectItem value="new_automation">Nueva automatización</SelectItem>
-                  <SelectItem value="change">Cambio</SelectItem>
-                  <SelectItem value="question">Pregunta</SelectItem>
+                  <SelectItem value="support">{t.typeSupport}</SelectItem>
+                  <SelectItem value="new_automation">{t.typeNewAutomation}</SelectItem>
+                  <SelectItem value="change">{t.typeChange}</SelectItem>
+                  <SelectItem value="question">{t.typeQuestion}</SelectItem>
                 </SelectContent>
               </Select>
               {errors.type && <p className="text-xs text-red-500">{errors.type.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Prioridad</Label>
+              <Label>{t.adminColPriority}</Label>
               <Select defaultValue="medium" onValueChange={(v) => setValue("priority", v as FormData["priority"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Baja</SelectItem>
-                  <SelectItem value="medium">Media</SelectItem>
-                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="low">{t.adminPriorityLow}</SelectItem>
+                  <SelectItem value="medium">{t.adminPriorityMedium}</SelectItem>
+                  <SelectItem value="high">{t.adminPriorityHigh}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Descripción *</Label>
+            <Label>{t.reqDescLabel} *</Label>
             <Textarea
-              placeholder="Describe en detalle lo que necesitas..."
+              placeholder={t.reqDescPlaceholder}
               rows={4}
               {...register("description")}
             />
@@ -107,10 +109,10 @@ export function CreateRequestDialog() {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t.cancel}</Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Enviar solicitud
+              {t.reqSendBtn}
             </Button>
           </DialogFooter>
         </form>
