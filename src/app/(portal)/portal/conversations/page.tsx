@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { getServerT } from "@/lib/i18n-server";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -14,17 +15,20 @@ export default async function PortalConversationsPage() {
   const session = await auth();
   if (!session?.user.organizationId) return redirect("/login");
 
-  const conversations = await prisma.conversation.findMany({
-    where: { organizationId: session.user.organizationId },
-    orderBy: { updatedAt: "desc" },
-    include: { _count: { select: { messages: true } } },
-  });
+  const [t, conversations] = await Promise.all([
+    getServerT(),
+    prisma.conversation.findMany({
+      where: { organizationId: session.user.organizationId },
+      orderBy: { updatedAt: "desc" },
+      include: { _count: { select: { messages: true } } },
+    }),
+  ]);
 
   return (
     <div>
       <PageHeader
-        title="Conversaciones"
-        description={`${conversations.length} conversaciones`}
+        title={t.conversationsTitle}
+        description={`${conversations.length} ${t.conversationsCount}`}
       />
 
       {conversations.length === 0 ? (
@@ -32,8 +36,8 @@ export default async function PortalConversationsPage() {
           <CardContent className="py-0">
             <EmptyState
               icon={MessageSquare}
-              title="Sin conversaciones aún"
-              description="Las conversaciones de tu asistente de WhatsApp aparecerán aquí."
+              title={t.noConversations}
+              description={t.conversationsEmptyDesc}
             />
           </CardContent>
         </Card>
@@ -42,11 +46,11 @@ export default async function PortalConversationsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contacto</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Canal</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Mensajes</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Última actividad</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colContact}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colChannel}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colMessages}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colStatus}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colLastActivity}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -54,7 +58,7 @@ export default async function PortalConversationsPage() {
                 <tr key={conv.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
                     <Link href={`/portal/conversations/${conv.id}`} className="hover:underline">
-                      <p className="font-medium text-slate-900">{conv.contactName ?? "Desconocido"}</p>
+                      <p className="font-medium text-slate-900">{conv.contactName ?? t.unknown}</p>
                       {conv.contactPhone && <p className="text-xs text-slate-400">{conv.contactPhone}</p>}
                     </Link>
                   </td>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import { Users, Zap, MessageSquare, FileText, Calendar, AlertTriangle } from "lucide-react";
+import { Users, Zap, MessageSquare, FileText, AlertTriangle } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { getServerT } from "@/lib/i18n-server";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { MetricCard } from "@/components/shared/MetricCard";
@@ -51,44 +52,33 @@ export default async function PortalDashboardPage() {
   const session = await auth();
   if (!session?.user.organizationId) return redirect("/login");
 
-  const metrics = await getPortalMetrics(session.user.organizationId);
+  const [t, metrics] = await Promise.all([
+    getServerT(),
+    getPortalMetrics(session.user.organizationId),
+  ]);
 
   return (
     <div>
       <PageHeader
-        title="Dashboard"
-        description={`Bienvenido de vuelta, ${session.user.name ?? session.user.email}`}
+        title={t.dashboard}
+        description={`${t.welcomeBack}, ${session.user.name ?? session.user.email}`}
       />
 
       <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-3 xl:grid-cols-6">
-        <MetricCard title="Leads totales" value={metrics.totalLeads} icon={Users} />
-        <MetricCard
-          title="Leads hoy"
-          value={metrics.newLeadsToday}
-          icon={Users}
-          iconClassName="bg-emerald-50"
-        />
-        <MetricCard title="Automatizaciones" value={metrics.activeAutomations} icon={Zap} />
-        <MetricCard
-          title="Errores"
-          value={metrics.automationErrors}
-          icon={AlertTriangle}
-          iconClassName="bg-red-50"
-        />
-        <MetricCard title="Conversaciones" value={metrics.openConversations} icon={MessageSquare} />
-        <MetricCard title="Solicitudes" value={metrics.openRequests} icon={FileText} />
+        <MetricCard title={t.totalLeads} value={metrics.totalLeads} icon={Users} />
+        <MetricCard title={t.leadsToday} value={metrics.newLeadsToday} icon={Users} iconClassName="bg-emerald-50" />
+        <MetricCard title={t.automations} value={metrics.activeAutomations} icon={Zap} />
+        <MetricCard title={t.errors} value={metrics.automationErrors} icon={AlertTriangle} iconClassName="bg-red-50" />
+        <MetricCard title={t.conversations} value={metrics.openConversations} icon={MessageSquare} />
+        <MetricCard title={t.requests} value={metrics.openRequests} icon={FileText} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Leads recientes</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>{t.recentLeads}</CardTitle></CardHeader>
           <CardContent>
             {metrics.recentLeads.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-6">
-                Sin leads aún. Activa tu primera automatización.
-              </p>
+              <p className="text-sm text-slate-400 text-center py-6">{t.noLeadsYet}</p>
             ) : (
               <div className="space-y-3">
                 {metrics.recentLeads.map((lead) => (
@@ -108,12 +98,10 @@ export default async function PortalDashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Actividad de automatizaciones</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>{t.automationActivity}</CardTitle></CardHeader>
           <CardContent>
             {metrics.recentEvents.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-6">Sin actividad reciente</p>
+              <p className="text-sm text-slate-400 text-center py-6">{t.noRecentActivity}</p>
             ) : (
               <div className="space-y-3">
                 {metrics.recentEvents.map((event) => (

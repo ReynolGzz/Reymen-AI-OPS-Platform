@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getServerT } from "@/lib/i18n-server";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -10,29 +11,32 @@ import { CreateRequestDialog } from "@/components/portal/CreateRequestDialog";
 import { formatDate } from "@/lib/utils";
 import { FileText } from "lucide-react";
 
-const TYPE_LABELS: Record<string, string> = {
-  support: "Soporte",
-  new_automation: "Nueva automatización",
-  change: "Cambio",
-  question: "Pregunta",
-};
-
 export default async function PortalRequestsPage() {
   const session = await auth();
   if (!session?.user.organizationId) return redirect("/login");
 
-  const requests = await prisma.request.findMany({
-    where: { organizationId: session.user.organizationId },
-    orderBy: { createdAt: "desc" },
-  });
+  const [t, requests] = await Promise.all([
+    getServerT(),
+    prisma.request.findMany({
+      where: { organizationId: session.user.organizationId },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const typeLabels: Record<string, string> = {
+    support: t.typeSupport,
+    new_automation: t.typeNewAutomation,
+    change: t.typeChange,
+    question: t.typeQuestion,
+  };
 
   const openCount = requests.filter((r) => r.status === "OPEN" || r.status === "IN_PROGRESS").length;
 
   return (
     <div>
       <PageHeader
-        title="Solicitudes"
-        description={`${openCount} activas · ${requests.length} total`}
+        title={t.requestsTitle}
+        description={`${openCount} ${t.requestsActive} · ${requests.length} ${t.requestsTotal}`}
         actions={<CreateRequestDialog />}
       />
 
@@ -41,8 +45,8 @@ export default async function PortalRequestsPage() {
           <CardContent className="py-0">
             <EmptyState
               icon={FileText}
-              title="Sin solicitudes"
-              description="¿Necesitas soporte o una nueva automatización? Envíanos una solicitud."
+              title={t.noRequests}
+              description={t.requestsEmptyDesc}
               action={<CreateRequestDialog />}
             />
           </CardContent>
@@ -57,7 +61,7 @@ export default async function PortalRequestsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-slate-900">{req.title}</p>
                       <Badge variant="secondary" className="text-xs">
-                        {TYPE_LABELS[req.type] ?? req.type}
+                        {typeLabels[req.type] ?? req.type}
                       </Badge>
                     </div>
                     <p className="mt-1 text-sm text-slate-500 line-clamp-2">{req.description}</p>

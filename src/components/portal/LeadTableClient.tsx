@@ -7,33 +7,36 @@ import { LeadScoreBadge } from "@/components/shared/LeadScoreBadge";
 import { Badge } from "@/components/ui/badge";
 import { LeadActions } from "@/components/portal/LeadActions";
 import { formatDate } from "@/lib/utils";
+import { usePreferences } from "@/context/preferences";
 import type { Lead, LeadStatus } from "@prisma/client";
-
-const STATUS_OPTIONS: { value: LeadStatus | "ALL"; label: string }[] = [
-  { value: "ALL", label: "Todos" },
-  { value: "NEW", label: "Nuevos" },
-  { value: "CONTACTED", label: "Contactados" },
-  { value: "QUALIFIED", label: "Calificados" },
-  { value: "PROPOSAL", label: "Propuesta" },
-  { value: "WON", label: "Ganados" },
-  { value: "LOST", label: "Perdidos" },
-];
 
 interface LeadTableClientProps {
   leads: Lead[];
 }
 
 export function LeadTableClient({ leads }: LeadTableClientProps) {
+  const { t } = usePreferences();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "ALL">("ALL");
+
+  const statusOptions: { value: LeadStatus | "ALL"; label: string }[] = [
+    { value: "ALL", label: t.filterAll },
+    { value: "NEW", label: t.filterNew },
+    { value: "CONTACTED", label: t.filterContacted },
+    { value: "QUALIFIED", label: t.filterQualified },
+    { value: "PROPOSAL", label: t.filterProposal },
+    { value: "WON", label: t.filterWon },
+    { value: "LOST", label: t.filterLost },
+  ];
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return leads.filter((l) => {
-      const matchesQuery = !q
-        || l.name.toLowerCase().includes(q)
-        || (l.email ?? "").toLowerCase().includes(q)
-        || (l.phone ?? "").includes(q);
+      const matchesQuery =
+        !q ||
+        l.name.toLowerCase().includes(q) ||
+        (l.email ?? "").toLowerCase().includes(q) ||
+        (l.phone ?? "").includes(q);
       const matchesStatus = statusFilter === "ALL" || l.status === statusFilter;
       return matchesQuery && matchesStatus;
     });
@@ -47,10 +50,10 @@ export function LeadTableClient({ leads }: LeadTableClientProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por nombre, email o teléfono..."
+            placeholder={t.searchLeads}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-md border border-slate-200 bg-white py-2 pl-9 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+            className="w-full rounded-md border border-slate-200 bg-white py-2 pl-9 pr-8 text-sm focus:border-brand-500 focus:outline-none text-slate-900"
           />
           {query && (
             <button
@@ -62,7 +65,7 @@ export function LeadTableClient({ leads }: LeadTableClientProps) {
           )}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {STATUS_OPTIONS.map((opt) => (
+          {statusOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setStatusFilter(opt.value)}
@@ -80,19 +83,19 @@ export function LeadTableClient({ leads }: LeadTableClientProps) {
 
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-200 py-10 text-center">
-          <p className="text-sm text-slate-400">No se encontraron leads con esos filtros</p>
+          <p className="text-sm text-slate-400">{t.noLeadsFiltered}</p>
         </div>
       ) : (
         <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nombre</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contacto</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Fuente</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Score AI</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Fecha</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colName}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colContact}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colSource}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colStatus}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colScore}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">{t.colDate}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -129,7 +132,7 @@ export function LeadTableClient({ leads }: LeadTableClientProps) {
             </tbody>
           </table>
           <div className="border-t border-slate-100 px-4 py-2 text-xs text-slate-400">
-            {filtered.length} de {leads.length} leads
+            {filtered.length} {t.ofLeads} {leads.length} {t.leads}
           </div>
         </div>
       )}

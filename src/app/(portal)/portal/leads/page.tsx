@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getServerT } from "@/lib/i18n-server";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,13 +21,16 @@ export default async function PortalLeadsPage() {
   const session = await auth();
   if (!session?.user.organizationId) return redirect("/login");
 
-  const leads = await getLeads(session.user.organizationId);
+  const [t, leads] = await Promise.all([
+    getServerT(),
+    getLeads(session.user.organizationId),
+  ]);
 
   return (
     <div>
       <PageHeader
-        title="Leads"
-        description={`${leads.length} leads totales`}
+        title={t.leadsTitle}
+        description={`${leads.length} ${t.totalLeadsCount}`}
         actions={
           <div className="flex items-center gap-2">
             {leads.length > 0 && <ExportLeadsButton />}
@@ -40,8 +44,8 @@ export default async function PortalLeadsPage() {
           <CardContent className="py-0">
             <EmptyState
               icon={Users}
-              title="Sin leads aún"
-              description="Los leads de tus automatizaciones aparecerán aquí. También puedes agregarlos manualmente."
+              title={t.noLeads}
+              description={t.leadsEmptyDesc}
               action={<CreateLeadDialog />}
             />
           </CardContent>

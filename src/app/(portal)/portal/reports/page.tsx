@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getServerT } from "@/lib/i18n-server";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +11,7 @@ import { AutomationHealthChart } from "@/components/charts/AutomationHealthChart
 import { RoiCalculator } from "@/components/portal/RoiCalculator";
 import { Users, Zap, Calendar, TrendingUp } from "lucide-react";
 
-const STATUS_LABELS: Record<string, string> = {
-  NEW: "Nuevos", CONTACTED: "Contactados", QUALIFIED: "Calificados",
-  PROPOSAL: "Propuesta", WON: "Ganados", LOST: "Perdidos",
-};
+// STATUS_LABELS sourced from server translations at render time
 
 const FUNNEL_COLORS: Record<string, string> = {
   NEW: "#94a3b8", CONTACTED: "#60a5fa", QUALIFIED: "#818cf8",
@@ -94,84 +92,79 @@ export default async function PortalReportsPage() {
   const session = await auth();
   if (!session?.user.organizationId) return redirect("/login");
 
-  const data = await getReportData(session.user.organizationId);
+  const [t, data] = await Promise.all([
+    getServerT(),
+    getReportData(session.user.organizationId),
+  ]);
+
   const wonLeads = data.leadsByStatus.find((l) => l.status === "WON")?._count.id ?? 0;
   const conversionRate = data.totalLeads > 0 ? Math.round((wonLeads / data.totalLeads) * 100) : 0;
   const successEvents = data.eventsByStatus.find((e) => e.status === "SUCCESS")?._count.id ?? 0;
   const failedEvents = data.eventsByStatus.find((e) => e.status === "FAILED")?._count.id ?? 0;
   const pendingEvents = data.eventsByStatus.find((e) => e.status === "PENDING")?._count.id ?? 0;
 
+  const statusLabels: Record<string, string> = {
+    NEW: t.funnelNew, CONTACTED: t.funnelContacted, QUALIFIED: t.funnelQualified,
+    PROPOSAL: t.funnelProposal, WON: t.funnelWon, LOST: t.funnelLost,
+  };
+
   const trendData = buildLeadTrend(data.recentLeads);
   const funnelData = data.leadsByStatus.map((item) => ({
-    label: STATUS_LABELS[item.status] ?? item.status,
+    label: statusLabels[item.status] ?? item.status,
     count: item._count.id,
     color: FUNNEL_COLORS[item.status] ?? "#94a3b8",
   }));
 
   return (
     <div>
-      <PageHeader title="Reportes" description="Análisis de rendimiento de tus operaciones" />
+      <PageHeader title={t.reportsTitle} description={t.reportsDesc} />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
-        <MetricCard title="Leads totales" value={data.totalLeads} icon={Users} />
-        <MetricCard title="Leads ganados" value={wonLeads} icon={TrendingUp} iconClassName="bg-emerald-50" />
-        <MetricCard title="Conversión" value={`${conversionRate}%`} icon={Users} iconClassName="bg-brand-50" />
-        <MetricCard title="Citas confirmadas" value={data.confirmedAppointments} icon={Calendar} iconClassName="bg-amber-50" />
+        <MetricCard title={t.totalLeadsReport} value={data.totalLeads} icon={Users} />
+        <MetricCard title={t.wonLeads} value={wonLeads} icon={TrendingUp} iconClassName="bg-emerald-50" />
+        <MetricCard title={t.conversion} value={`${conversionRate}%`} icon={Users} iconClassName="bg-brand-50" />
+        <MetricCard title={t.confirmedAppointments} value={data.confirmedAppointments} icon={Calendar} iconClassName="bg-amber-50" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
-        {/* Lead trend */}
         <Card>
-          <CardHeader><CardTitle>Leads — últimos 30 días</CardTitle></CardHeader>
-          <CardContent>
-            <LeadTrendChart data={trendData} />
-          </CardContent>
+          <CardHeader><CardTitle>{t.leadsLast30}</CardTitle></CardHeader>
+          <CardContent><LeadTrendChart data={trendData} /></CardContent>
         </Card>
 
-        {/* Lead funnel */}
         <Card>
-          <CardHeader><CardTitle>Embudo de conversión</CardTitle></CardHeader>
-          <CardContent>
-            <LeadFunnelChart data={funnelData} />
-          </CardContent>
+          <CardHeader><CardTitle>{t.conversionFunnel}</CardTitle></CardHeader>
+          <CardContent><LeadFunnelChart data={funnelData} /></CardContent>
         </Card>
 
-        {/* Automation health */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
-              Salud de automatizaciones
+              {t.automationHealth}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <AutomationHealthChart
-              success={successEvents}
-              failed={failedEvents}
-              pending={pendingEvents}
-            />
+            <AutomationHealthChart success={successEvents} failed={failedEvents} pending={pendingEvents} />
           </CardContent>
         </Card>
 
-        {/* Lead by source */}
         <Card>
-          <CardHeader><CardTitle>Leads por fuente</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.leadsBySource}</CardTitle></CardHeader>
           <CardContent>
             {data.leadsBySource.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8">Sin datos</p>
+              <p className="text-sm text-slate-400 text-center py-8">{t.noData}</p>
             ) : (
               <div className="space-y-3 pt-2">
                 {data.leadsBySource
                   .sort((a, b) => b._count.id - a._count.id)
                   .map((item) => {
-                    const pct = data.totalLeads > 0
-                      ? Math.round((item._count.id / data.totalLeads) * 100)
-                      : 0;
+                    const pct = data.totalLeads > 0 ? Math.round((item._count.id / data.totalLeads) * 100) : 0;
                     return (
                       <div key={item.source ?? "unknown"}>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-slate-600 capitalize">{item.source ?? "Sin fuente"}</span>
+                          <span className="text-slate-600 capitalize">{item.source ?? t.noSource}</span>
                           <span className="font-semibold">{item._count.id} <span className="text-slate-400 font-normal">({pct}%)</span></span>
                         </div>
                         <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
@@ -186,7 +179,6 @@ export default async function PortalReportsPage() {
         </Card>
       </div>
 
-      {/* ROI Simulator */}
       <RoiCalculator totalLeads={data.totalLeads} wonLeads={wonLeads} />
     </div>
   );
