@@ -1,0 +1,81 @@
+"use server";
+
+import { auth, isAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import type { UserRole } from "@prisma/client";
+
+export type PortalUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: string;
+  organizationId: string;
+  organizationName: string;
+};
+
+export async function getPortalUsers(): Promise<PortalUser[]> {
+  const session = await auth();
+  if (!session?.user || !isAdmin(session.user.role)) throw new Error("Unauthorized");
+
+  const users = await prisma.user.findMany({
+    where: {
+      isActive: true,
+      organizationId: { not: null },
+      role: { notIn: ["SUPER_ADMIN", "ADMIN"] },
+    },
+    include: { organization: { select: { name: true } } },
+    orderBy: [{ organization: { name: "asc" } }, { name: "asc" }],
+  });
+
+  return users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    image: u.image,
+    role: u.role,
+    organizationId: u.organizationId!,
+    organizationName: u.organization?.name ?? "—",
+  }));
+}
+
+export async function startImpersonation(targetUserId: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user || !isAdmin(session.user.role)) throw new Error("Unauthorized");
+  if (session.user.impersonating) throw new Error("Already impersonating");
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId, isActive: true },
+    include: { organization: { select: { name: true } } },
+  });
+
+  if (!target || !target.organizationId) throw new Error("User not found or not a portal user");
+  if (isAdmin(target.role as UserRole)) throw new Error("Cannot impersonate admin users");
+
+  const cookieStore = await cookies();
+  cookieStore.set("reymen-impersonate", JSON.stringify({
+    adminId: session.user.id,
+    adminName: session.user.name ?? null,
+    adminEmail: session.user.email ?? "",
+    targetUserId: target.id,
+    targetName: target.name ?? null,
+    targetEmail: target.email,
+    targetImage: target.image ?? null,
+    targetRole: target.role,
+    targetOrgId: target.organizationId,
+  }), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 8,
+    sameSite: "lax",
+  });
+}
+
+export async function stopImpersonation(): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("Not authenticated");
+  const cookieStore = await cookies();
+  cookieStore.delete("reymen-impersonate");
+}

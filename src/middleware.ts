@@ -26,8 +26,17 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/portal/dashboard", req.url));
   }
 
-  // Portal routes require an organization
+  // Portal routes require an organization (or an active impersonation)
   if (isPortalRoute && !session.user.organizationId) {
+    const impersonateCookie = req.cookies.get("reymen-impersonate");
+    if (impersonateCookie?.value) {
+      try {
+        const imp = JSON.parse(impersonateCookie.value) as { adminId: string; targetOrgId: string };
+        if (imp.adminId === session.user.id && imp.targetOrgId) {
+          return NextResponse.next();
+        }
+      } catch {}
+    }
     return NextResponse.redirect(new URL("/login", req.url));
   }
 

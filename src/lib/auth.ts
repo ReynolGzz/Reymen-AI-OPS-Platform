@@ -14,6 +14,7 @@ declare module "next-auth" {
       organizationId: string | null;
       theme: string;
       language: string;
+      impersonating?: { adminId: string; adminName: string | null; adminEmail: string } | null;
     } & DefaultSession["user"];
   }
   interface User {
@@ -85,6 +86,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
+      // Admins can impersonate — read cookie in server context (fails silently in Edge/middleware)
+      if (token && (token.role === "SUPER_ADMIN" || token.role === "ADMIN")) {
+        try {
+          const { cookies } = await import("next/headers");
+          const cookieStore = await cookies();
+          const raw = cookieStore.get("reymen-impersonate")?.value;
+          if (raw) {
+            const imp = JSON.parse(raw) as {
+              adminId: string; adminName: string | null; adminEmail: string;
+              targetUserId: string; targetName: string | null; targetEmail: string;
+              targetImage: string | null; targetRole: string; targetOrgId: string;
+            };
+            if (imp.adminId === (token.id as string)) {
+              session.user.id = imp.targetUserId;
+              session.user.name = imp.targetName;
+              session.user.email = imp.targetEmail;
+              session.user.image = imp.targetImage ?? null;
+              session.user.role = imp.targetRole as UserRole;
+              session.user.organizationId = imp.targetOrgId;
+              session.user.theme = (token.theme as string) ?? "light";
+              session.user.language = (token.language as string) ?? "es";
+              session.user.impersonating = {
+                adminId: imp.adminId,
+                adminName: imp.adminName,
+                adminEmail: imp.adminEmail,
+              };
+              return session;
+            }
+          }
+        } catch {
+          // cookies() not available in Edge runtime (middleware) — return real session below
+        }
+      }
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
@@ -92,6 +126,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.image = (token.image as string | null) ?? null;
         session.user.theme = (token.theme as string) ?? "light";
         session.user.language = (token.language as string) ?? "es";
+        session.user.impersonating = null;
       }
       return session;
     },

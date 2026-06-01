@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useTransition } from "react";
 import {
   Bell, LogOut, MessageSquare, FileText, Sun, Moon, Globe,
-  Image as ImageIcon, KeyRound, RefreshCw, User, Loader2, Upload,
+  Image as ImageIcon, KeyRound, RefreshCw, User, Loader2, Upload, Users, X,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePreferences, type Theme, type Lang } from "@/context/preferences";
 import { updateAvatar, changePassword, removeAvatar } from "@/actions/profile";
+import { startImpersonation, stopImpersonation, getPortalUsers, type PortalUser } from "@/actions/impersonation";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -52,7 +53,7 @@ interface TopBarProps {
   title?: string;
 }
 
-type ActiveDialog = null | "avatar" | "password" | "switch-account";
+type ActiveDialog = null | "avatar" | "password" | "switch-account" | "impersonate";
 
 export function TopBar({ title }: TopBarProps) {
   const { data: session } = useSession();
@@ -222,11 +223,85 @@ export function TopBar({ title }: TopBarProps) {
     });
   }
 
+  // Impersonation state
+  const [portalUsers, setPortalUsers] = useState<PortalUser[]>([]);
+  const [impersonateSearch, setImpersonateSearch] = useState("");
+  const [impersonateLoadingId, setImpersonateLoadingId] = useState<string | null>(null);
+  const [impersonateFetching, setImpersonateFetching] = useState(false);
+
+  const isImpersonating = !!session?.user?.impersonating;
   const initials = getInitials(session?.user?.name, session?.user?.email);
   const userRole = session?.user?.role ?? "";
+  const isAdminUser = !isImpersonating && (userRole === "SUPER_ADMIN" || userRole === "ADMIN");
+
+  const filteredPortalUsers = portalUsers.filter((u) => {
+    const q = impersonateSearch.toLowerCase();
+    return (
+      !q ||
+      u.name?.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.organizationName.toLowerCase().includes(q)
+    );
+  });
+
+  async function openImpersonateDialog() {
+    setUserMenuOpen(false);
+    setImpersonateSearch("");
+    setActiveDialog("impersonate");
+    setImpersonateFetching(true);
+    try {
+      const users = await getPortalUsers();
+      setPortalUsers(users);
+    } catch {
+      toast.error(t.impersonateError);
+      setActiveDialog(null);
+    } finally {
+      setImpersonateFetching(false);
+    }
+  }
+
+  async function handleStartImpersonation(userId: string) {
+    setImpersonateLoadingId(userId);
+    try {
+      await startImpersonation(userId);
+      window.location.href = "/portal/dashboard";
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t.impersonateError);
+      setImpersonateLoadingId(null);
+    }
+  }
+
+  async function handleStopImpersonation() {
+    setUserMenuOpen(false);
+    try {
+      await stopImpersonation();
+      window.location.href = "/admin/dashboard";
+    } catch {
+      toast.error(t.error);
+    }
+  }
 
   return (
     <>
+      {/* ── Impersonation banner ─────────────────────────────────── */}
+      {isImpersonating && session?.user?.impersonating && (
+        <div className="flex shrink-0 items-center justify-between bg-amber-500 px-6 py-1.5 text-sm font-medium text-white">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-white shrink-0" />
+            <span>
+              {t.impersonatingAs}: <strong>{session.user.name || session.user.email}</strong>
+              <span className="ml-2 text-xs opacity-75">({session.user.role})</span>
+            </span>
+          </div>
+          <button
+            onClick={handleStopImpersonation}
+            className="rounded bg-amber-700 px-3 py-0.5 text-xs font-semibold transition-colors hover:bg-amber-800"
+          >
+            {t.stopImpersonation}
+          </button>
+        </div>
+      )}
+
       <header className="relative flex h-16 shrink-0 items-center border-b border-slate-200 bg-white px-6">
         <div className="flex-1">
           {title && <p className="text-sm text-slate-500">{title}</p>}
@@ -339,6 +414,24 @@ export function TopBar({ title }: TopBarProps) {
                 </div>
               </div>
 
+              {/* Stop impersonation — shown only when impersonating */}
+              {isImpersonating && session?.user?.impersonating && (
+                <div className="border-b border-amber-200 bg-amber-50 py-1">
+                  <button
+                    onClick={handleStopImpersonation}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-sm text-amber-800 transition-colors hover:bg-amber-100"
+                  >
+                    <X className="h-4 w-4 shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium">{t.stopImpersonation}</p>
+                      <p className="text-xs text-amber-600">
+                        {t.backToAdmin}: {session.user.impersonating.adminName || session.user.impersonating.adminEmail}
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              )}
+
               {/* Profile actions */}
               <div className="py-1 border-b border-slate-100">
                 <button
@@ -418,7 +511,7 @@ export function TopBar({ title }: TopBarProps) {
                 </div>
               </div>
 
-              {/* Switch account */}
+              {/* Switch account + Impersonate (admin only) */}
               <div className="py-1 border-b border-slate-100">
                 <button
                   onClick={() => openDialog("switch-account")}
@@ -427,6 +520,15 @@ export function TopBar({ title }: TopBarProps) {
                   <RefreshCw className="h-4 w-4 text-slate-400 flex-shrink-0" />
                   {t.switchAccount}
                 </button>
+                {isAdminUser && (
+                  <button
+                    onClick={openImpersonateDialog}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <Users className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                    {t.impersonate}
+                  </button>
+                )}
               </div>
 
               {/* Sign out */}
@@ -570,6 +672,69 @@ export function TopBar({ title }: TopBarProps) {
               {isPendingPwd ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               {t.save}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Impersonate Dialog ─────────────────────────────────────── */}
+      <Dialog open={activeDialog === "impersonate"} onOpenChange={(o) => !o && setActiveDialog(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-brand-600" />
+              {t.impersonateTitle}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <p className="text-sm text-slate-500">{t.impersonateDesc}</p>
+            <input
+              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none"
+              placeholder={t.impersonateSearch}
+              value={impersonateSearch}
+              onChange={(e) => setImpersonateSearch(e.target.value)}
+              autoFocus
+            />
+            <div className="max-h-64 overflow-y-auto space-y-1 pr-0.5">
+              {impersonateFetching ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                </div>
+              ) : filteredPortalUsers.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-400">{t.noPortalUsers}</p>
+              ) : (
+                filteredPortalUsers.map((user) => (
+                  <button
+                    key={user.id}
+                    disabled={!!impersonateLoadingId}
+                    onClick={() => handleStartImpersonation(user.id)}
+                    className="flex w-full items-center gap-3 rounded-lg border border-slate-100 p-3 text-left transition-colors hover:border-brand-200 hover:bg-brand-50 disabled:opacity-50"
+                  >
+                    {user.image ? (
+                      <img src={user.image} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                        {(user.name?.[0] ?? user.email[0]).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-slate-900">{user.name || "—"}</p>
+                      <p className="truncate text-xs text-slate-500">{user.email} · {user.organizationName}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
+                        {user.role}
+                      </span>
+                      {impersonateLoadingId === user.id && (
+                        <Loader2 className="h-4 w-4 animate-spin text-brand-600" />
+                      )}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActiveDialog(null)}>{t.cancel}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -443,6 +443,20 @@ export const strings = {
     escalatedConvs: "conversación escalada",
     escalatedConvsPlural: "conversaciones escaladas",
     viewAll2: "Ver todas →",
+
+    // ── Impersonation ─────────────────────────────────────────────
+    impersonate: "Impersonar",
+    impersonateTitle: "Impersonar usuario",
+    impersonateDesc: "Selecciona un usuario para ver la plataforma desde su perspectiva.",
+    impersonateSearch: "Buscar por nombre, email u organización...",
+    impersonateBtn: "Impersonar",
+    impersonating: "Impersonando",
+    impersonatingAs: "Impersonando a",
+    stopImpersonation: "Salir de impersonación",
+    backToAdmin: "Volver como",
+    cannotImpersonateAdmin: "No se puede impersonar a administradores",
+    noPortalUsers: "Sin usuarios de portal disponibles",
+    impersonateError: "Error al impersonar",
   },
   en: {
     // ── Navigation ───────────────────────────────────────────
@@ -883,6 +897,20 @@ export const strings = {
     escalatedConvs: "escalated conversation",
     escalatedConvsPlural: "escalated conversations",
     viewAll2: "View all →",
+
+    // ── Impersonation ─────────────────────────────────────────────
+    impersonate: "Impersonate",
+    impersonateTitle: "Impersonate user",
+    impersonateDesc: "Select a user to view the platform from their perspective.",
+    impersonateSearch: "Search by name, email or organization...",
+    impersonateBtn: "Impersonate",
+    impersonating: "Impersonating",
+    impersonatingAs: "Impersonating as",
+    stopImpersonation: "Stop impersonation",
+    backToAdmin: "Back as",
+    cannotImpersonateAdmin: "Cannot impersonate admin users",
+    noPortalUsers: "No portal users available",
+    impersonateError: "Error impersonating",
   },
 } as const;
 
