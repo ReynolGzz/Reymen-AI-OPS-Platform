@@ -51,23 +51,11 @@ interface PreferencesProviderProps {
 }
 
 export function PreferencesProvider({ children, initialTheme, initialLang }: PreferencesProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("reymen-theme");
-      if (stored === "dark" || stored === "light") return stored;
-    }
-    if (initialTheme === "dark") return "dark";
-    return "light";
-  });
-
-  const [lang, setLangState] = useState<Lang>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("reymen-lang");
-      if (stored === "en" || stored === "es") return stored;
-    }
-    if (initialLang === "en") return "en";
-    return "es";
-  });
+  // Initialize from props only — these come from cookies read server-side in layout.tsx.
+  // Do NOT read localStorage here: the initializer runs on both server and client during
+  // hydration, so any window/localStorage access would cause a hydration mismatch.
+  const [theme, setThemeState] = useState<Theme>(initialTheme === "dark" ? "dark" : "light");
+  const [lang, setLangState] = useState<Lang>(initialLang === "en" ? "en" : "es");
 
   useEffect(() => {
     applyTheme(theme);
