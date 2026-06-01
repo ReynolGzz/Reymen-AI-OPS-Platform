@@ -43,10 +43,13 @@ model User {
   id             String   @id @default(cuid())
   email          String   @unique
   name           String?
+  image          String?
   passwordHash   String?
   role           UserRole @default(CLIENT)
   organizationId String?
   isActive       Boolean  @default(true)
+  theme          String?  @default("light")
+  language       String?  @default("es")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

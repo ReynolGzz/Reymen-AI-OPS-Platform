@@ -12,11 +12,16 @@ declare module "next-auth" {
       id: string;
       role: UserRole;
       organizationId: string | null;
+      theme: string;
+      language: string;
     } & DefaultSession["user"];
   }
   interface User {
     role: UserRole;
     organizationId: string | null;
+    image?: string | null;
+    theme?: string | null;
+    language?: string | null;
   }
 }
 
@@ -58,8 +63,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
+          image: user.image,
           role: user.role,
           organizationId: user.organizationId,
+          theme: user.theme,
+          language: user.language,
         };
       },
     }),
@@ -70,6 +78,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = user.role;
         token.organizationId = user.organizationId;
+        token.image = user.image ?? null;
+        token.theme = user.theme ?? "light";
+        token.language = user.language ?? "es";
       }
       return token;
     },
@@ -78,6 +89,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
         session.user.organizationId = token.organizationId as string | null;
+        session.user.image = (token.image as string | null) ?? null;
+        session.user.theme = (token.theme as string) ?? "light";
+        session.user.language = (token.language as string) ?? "es";
       }
       return session;
     },
