@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyWebhookSignature } from "@/lib/webhook-validator";
+import { isWebhookAuthorized } from "@/lib/webhook-validator";
 
 const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET ?? "";
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-reymen-signature") ?? "";
+  const plainSecret = req.headers.get("x-reymen-secret") ?? "";
   const orgId = req.headers.get("x-reymen-orgid") ?? "";
 
   const rawBody = await req.text();
 
-  if (!verifyWebhookSignature(rawBody, signature, WEBHOOK_SECRET)) {
+  if (!isWebhookAuthorized(rawBody, signature, plainSecret, WEBHOOK_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
