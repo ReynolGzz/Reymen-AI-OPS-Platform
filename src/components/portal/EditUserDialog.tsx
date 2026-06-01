@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateTeamMember } from "@/actions/team";
@@ -38,13 +38,17 @@ export function EditUserDialog({ userId, userName, userRole }: EditUserDialogPro
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const safeRole = (["MANAGER", "AGENT", "VIEWER"].includes(userRole) ? userRole : "AGENT") as FormData["role"];
+
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      name: userName,
-      role: (["MANAGER", "AGENT", "VIEWER"].includes(userRole) ? userRole : "AGENT") as FormData["role"],
-    },
+    defaultValues: { name: userName, role: safeRole },
   });
+
+  function openDialog() {
+    reset({ name: userName, role: safeRole });
+    setOpen(true);
+  }
 
   async function onSubmit(data: FormData) {
     setLoading(true);
@@ -59,64 +63,55 @@ export function EditUserDialog({ userId, userName, userRole }: EditUserDialogPro
     }
   }
 
-  function handleOpenChange(value: boolean) {
-    if (value) {
-      reset({
-        name: userName,
-        role: (["MANAGER", "AGENT", "VIEWER"].includes(userRole) ? userRole : "AGENT") as FormData["role"],
-      });
-    }
-    setOpen(value);
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-slate-600 hover:text-brand-600 hover:border-brand-300 gap-1.5"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Editar
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Editar miembro del equipo</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label>Nombre completo *</Label>
-            <Input placeholder="Ana Martínez" {...register("name")} />
-            {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label>Rol *</Label>
-            <Select
-              defaultValue={(["MANAGER", "AGENT", "VIEWER"].includes(userRole) ? userRole : "AGENT")}
-              onValueChange={(v) => setValue("role", v as FormData["role"])}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={openDialog}
+        className="gap-1.5 text-slate-600 hover:text-brand-600 hover:border-brand-300"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+        Editar
+      </Button>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Guardar cambios
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar miembro del equipo</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nombre completo *</Label>
+              <Input placeholder="Ana Martínez" {...register("name")} />
+              {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>Rol *</Label>
+              <Select
+                defaultValue={safeRole}
+                onValueChange={(v) => setValue("role", v as FormData["role"])}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                Guardar cambios
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
