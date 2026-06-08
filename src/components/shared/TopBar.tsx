@@ -306,11 +306,14 @@ export function TopBar({ title }: TopBarProps) {
         <div className="flex-1">
           {title && <p className="text-sm text-slate-500">{title}</p>}
         </div>
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-none select-none">
+        <Link
+          href="/"
+          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 select-none hover:opacity-70 transition-opacity"
+        >
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Reymen</span>
           <span className="h-3 w-px bg-slate-300" />
-          <span className="text-xs font-medium text-brand-600 uppercase tracking-widest">Platform</span>
-        </div>
+          <span className="text-xs font-medium text-brand-600 uppercase tracking-widest">Solutions</span>
+        </Link>
         <div className="flex-1 flex items-center justify-end gap-2">
           {/* ── Notification bell ─────────────────────────────── */}
           <button

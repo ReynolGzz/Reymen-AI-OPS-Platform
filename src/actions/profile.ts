@@ -38,6 +38,7 @@ export async function removeAvatar() {
   });
 
   revalidatePath("/portal");
+  revalidatePath("/admin");
   return { success: true };
 }
 
