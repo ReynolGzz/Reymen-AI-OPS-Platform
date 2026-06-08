@@ -56,7 +56,7 @@ interface TopBarProps {
 type ActiveDialog = null | "avatar" | "password" | "switch-account" | "impersonate";
 
 export function TopBar({ title }: TopBarProps) {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const { theme, setTheme, lang, setLang, t } = usePreferences();
 
   const [notifications, setNotifications] = useState<{ count: number; items: NotificationItem[] }>({
@@ -180,6 +180,7 @@ export function TopBar({ title }: TopBarProps) {
       try {
         await updateAvatar(avatarPreview);
         setUserImage(avatarPreview);
+        await update({ image: avatarPreview });
         setActiveDialog(null);
         toast.success(lang === "es" ? "Avatar actualizado" : "Avatar updated");
       } catch (e) {
@@ -194,6 +195,7 @@ export function TopBar({ title }: TopBarProps) {
         await removeAvatar();
         setUserImage(null);
         setAvatarPreview(null);
+        await update({ image: null });
         setActiveDialog(null);
         toast.success(lang === "es" ? "Avatar eliminado" : "Avatar removed");
       } catch (e) {

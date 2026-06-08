@@ -102,8 +102,14 @@ export async function updateOrgLogo(logoUrl: string | null) {
   if (!allowed.includes(session.user.role as UserRole)) throw new Error("Sin permisos");
 
   if (logoUrl) {
-    const parsed = z.string().url("URL inválida").safeParse(logoUrl);
-    if (!parsed.success) throw new Error("URL de logo inválida");
+    const isDataUri = logoUrl.startsWith("data:image/");
+    const isHttpUrl = logoUrl.startsWith("http://") || logoUrl.startsWith("https://");
+    if (!isDataUri && !isHttpUrl) throw new Error("Formato de imagen inválido");
+    if (isDataUri && logoUrl.length > 500 * 1024) throw new Error("Imagen demasiado grande (máx. 500KB)");
+    if (isHttpUrl) {
+      const parsed = z.string().url("URL inválida").safeParse(logoUrl);
+      if (!parsed.success) throw new Error("URL de logo inválida");
+    }
   }
 
   await prisma.organization.update({

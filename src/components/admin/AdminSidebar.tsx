@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -30,6 +30,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const LOGO_PRESETS = [
+  "https://api.dicebear.com/9.x/shapes/svg?seed=alpha",
+  "https://api.dicebear.com/9.x/shapes/svg?seed=beta",
+  "https://api.dicebear.com/9.x/shapes/svg?seed=gamma",
+  "https://api.dicebear.com/9.x/shapes/svg?seed=delta",
+  "https://api.dicebear.com/9.x/identicon/svg?seed=epsilon",
+  "https://api.dicebear.com/9.x/identicon/svg?seed=zeta",
+  "https://api.dicebear.com/9.x/icons/svg?seed=eta",
+  "https://api.dicebear.com/9.x/icons/svg?seed=theta",
+];
+
 interface AdminSidebarProps {
   adminName: string;
   logoUrl?: string | null;
@@ -37,12 +48,13 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSidebarProps) {
   const pathname = usePathname();
-  const { t } = usePreferences();
+  const { t, lang } = usePreferences();
 
   const [logoDialogOpen, setLogoDialogOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl ?? "");
   const [currentLogoUrl, setCurrentLogoUrl] = useState(initialLogoUrl);
   const [isPending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const navItems = [
     { href: "/admin/dashboard", label: t.dashboard, icon: LayoutDashboard },
@@ -56,6 +68,34 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
     { href: "/admin/api-docs", label: "API Docs", icon: Code },
     { href: "/admin/settings", label: t.settings, icon: Settings },
   ];
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(lang === "es" ? "Imagen demasiado grande (máx. 5MB)" : "Image too large (max 5MB)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const size = 200;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d")!;
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+        setLogoUrl(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = event.target!.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
 
   function handleSaveLogo() {
     startTransition(async () => {
@@ -151,7 +191,7 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
 
       {/* ── Logo Dialog ──────────────────────────────────────────── */}
       <Dialog open={logoDialogOpen} onOpenChange={(o) => !o && setLogoDialogOpen(false)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5 text-brand-600" />
@@ -159,18 +199,68 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Preview */}
             {logoUrl && (
               <div className="flex justify-center">
                 <img src={logoUrl} alt="" className="h-20 w-20 rounded-xl object-cover ring-4 ring-brand-100" />
               </div>
             )}
+
+            {/* Presets */}
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {lang === "es" ? "Avatares predefinidos" : "Preset avatars"}
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {LOGO_PRESETS.map((url) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => setLogoUrl(url)}
+                    className={cn(
+                      "overflow-hidden rounded-lg border-2 transition-all",
+                      logoUrl === url
+                        ? "border-brand-600 scale-105"
+                        : "border-transparent hover:border-brand-300"
+                    )}
+                  >
+                    <img src={url} alt="" className="h-14 w-14 object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* File upload */}
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {lang === "es" ? "O sube desde tu dispositivo" : "Or upload from your device"}
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {lang === "es" ? "Elegir imagen" : "Choose image"}
+              </Button>
+            </div>
+
+            {/* Manual URL */}
             <div className="space-y-1.5">
               <Label htmlFor="admin-logo-url">{t.logoUrl}</Label>
               <Input
                 id="admin-logo-url"
                 type="url"
                 placeholder="https://..."
-                value={logoUrl}
+                value={logoUrl.startsWith("data:") ? "" : logoUrl}
                 onChange={(e) => setLogoUrl(e.target.value)}
               />
             </div>
