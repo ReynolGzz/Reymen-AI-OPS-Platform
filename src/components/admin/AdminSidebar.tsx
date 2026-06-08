@@ -31,14 +31,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const LOGO_PRESETS = [
+  // Shapes
   "https://api.dicebear.com/9.x/shapes/svg?seed=alpha",
   "https://api.dicebear.com/9.x/shapes/svg?seed=beta",
   "https://api.dicebear.com/9.x/shapes/svg?seed=gamma",
   "https://api.dicebear.com/9.x/shapes/svg?seed=delta",
+  // Identicon
   "https://api.dicebear.com/9.x/identicon/svg?seed=epsilon",
   "https://api.dicebear.com/9.x/identicon/svg?seed=zeta",
-  "https://api.dicebear.com/9.x/icons/svg?seed=eta",
-  "https://api.dicebear.com/9.x/icons/svg?seed=theta",
+  "https://api.dicebear.com/9.x/identicon/svg?seed=eta",
+  "https://api.dicebear.com/9.x/identicon/svg?seed=theta",
+  // Icons
+  "https://api.dicebear.com/9.x/icons/svg?seed=iota",
+  "https://api.dicebear.com/9.x/icons/svg?seed=kappa",
+  "https://api.dicebear.com/9.x/icons/svg?seed=lambda",
+  "https://api.dicebear.com/9.x/icons/svg?seed=mu",
+  // Rings
+  "https://api.dicebear.com/9.x/rings/svg?seed=nu",
+  "https://api.dicebear.com/9.x/rings/svg?seed=xi",
+  "https://api.dicebear.com/9.x/rings/svg?seed=omicron",
+  "https://api.dicebear.com/9.x/rings/svg?seed=pi",
+  // Bottts Neutral
+  "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=rho",
+  "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=sigma",
+  "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=tau",
+  "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=upsilon",
+  // Pixel Art Neutral
+  "https://api.dicebear.com/9.x/pixel-art-neutral/svg?seed=phi",
+  "https://api.dicebear.com/9.x/pixel-art-neutral/svg?seed=chi",
+  "https://api.dicebear.com/9.x/pixel-art-neutral/svg?seed=psi",
+  "https://api.dicebear.com/9.x/pixel-art-neutral/svg?seed=omega",
 ];
 
 interface AdminSidebarProps {
@@ -211,22 +233,24 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 {lang === "es" ? "Avatares predefinidos" : "Preset avatars"}
               </p>
-              <div className="grid grid-cols-4 gap-2">
-                {LOGO_PRESETS.map((url) => (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => setLogoUrl(url)}
-                    className={cn(
-                      "overflow-hidden rounded-lg border-2 transition-all",
-                      logoUrl === url
-                        ? "border-brand-600 scale-105"
-                        : "border-transparent hover:border-brand-300"
-                    )}
-                  >
-                    <img src={url} alt="" className="h-14 w-14 object-cover" />
-                  </button>
-                ))}
+              <div className="max-h-64 overflow-y-auto pr-0.5">
+                <div className="grid grid-cols-4 gap-2">
+                  {LOGO_PRESETS.map((url) => (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => setLogoUrl(url)}
+                      className={cn(
+                        "overflow-hidden rounded-lg border-2 transition-all",
+                        logoUrl === url
+                          ? "border-brand-600 scale-105"
+                          : "border-transparent hover:border-brand-300"
+                      )}
+                    >
+                      <img src={url} alt="" className="h-14 w-14 object-cover" />
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

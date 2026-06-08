@@ -20,14 +20,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const AVATAR_PRESETS = [
+  // Adventurer
   "https://api.dicebear.com/9.x/adventurer/svg?seed=alpha",
-  "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=beta",
-  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=gamma",
-  "https://api.dicebear.com/9.x/lorelei/svg?seed=delta",
-  "https://api.dicebear.com/9.x/micah/svg?seed=epsilon",
-  "https://api.dicebear.com/9.x/personas/svg?seed=zeta",
-  "https://api.dicebear.com/9.x/pixel-art/svg?seed=eta",
-  "https://api.dicebear.com/9.x/rings/svg?seed=theta",
+  "https://api.dicebear.com/9.x/adventurer/svg?seed=beta",
+  "https://api.dicebear.com/9.x/adventurer/svg?seed=gamma",
+  "https://api.dicebear.com/9.x/adventurer/svg?seed=delta",
+  // Lorelei
+  "https://api.dicebear.com/9.x/lorelei/svg?seed=epsilon",
+  "https://api.dicebear.com/9.x/lorelei/svg?seed=zeta",
+  "https://api.dicebear.com/9.x/lorelei/svg?seed=eta",
+  "https://api.dicebear.com/9.x/lorelei/svg?seed=theta",
+  // Micah
+  "https://api.dicebear.com/9.x/micah/svg?seed=iota",
+  "https://api.dicebear.com/9.x/micah/svg?seed=kappa",
+  "https://api.dicebear.com/9.x/micah/svg?seed=lambda",
+  "https://api.dicebear.com/9.x/micah/svg?seed=mu",
+  // Personas
+  "https://api.dicebear.com/9.x/personas/svg?seed=nu",
+  "https://api.dicebear.com/9.x/personas/svg?seed=xi",
+  "https://api.dicebear.com/9.x/personas/svg?seed=omicron",
+  "https://api.dicebear.com/9.x/personas/svg?seed=pi",
+  // Fun Emoji
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=rho",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=sigma",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=tau",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=upsilon",
+  // Pixel Art
+  "https://api.dicebear.com/9.x/pixel-art/svg?seed=phi",
+  "https://api.dicebear.com/9.x/pixel-art/svg?seed=chi",
+  "https://api.dicebear.com/9.x/pixel-art/svg?seed=psi",
+  "https://api.dicebear.com/9.x/pixel-art/svg?seed=omega",
 ];
 
 interface NotificationItem {
@@ -576,19 +598,21 @@ export function TopBar({ title }: TopBarProps) {
             {/* Preset grid */}
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{lang === "es" ? "Avatares predefinidos" : "Preset avatars"}</p>
-              <div className="grid grid-cols-4 gap-2">
-                {AVATAR_PRESETS.map((url) => (
-                  <button
-                    key={url}
-                    onClick={() => setAvatarPreview(url)}
-                    className={cn(
-                      "rounded-full overflow-hidden border-2 transition-all",
-                      avatarPreview === url ? "border-brand-600 scale-105" : "border-transparent hover:border-brand-300"
-                    )}
-                  >
-                    <img src={url} alt="" className="h-14 w-14 object-cover" />
-                  </button>
-                ))}
+              <div className="max-h-64 overflow-y-auto pr-0.5">
+                <div className="grid grid-cols-4 gap-2">
+                  {AVATAR_PRESETS.map((url) => (
+                    <button
+                      key={url}
+                      onClick={() => setAvatarPreview(url)}
+                      className={cn(
+                        "rounded-full overflow-hidden border-2 transition-all",
+                        avatarPreview === url ? "border-brand-600 scale-105" : "border-transparent hover:border-brand-300"
+                      )}
+                    >
+                      <img src={url} alt="" className="h-14 w-14 object-cover" />
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
