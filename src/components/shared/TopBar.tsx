@@ -319,7 +319,7 @@ export function TopBar({ title }: TopBarProps) {
           <button
             ref={notifBtnRef}
             onClick={toggleNotif}
-            className="relative rounded-md p-2 text-slate-500 hover:bg-slate-100 transition-colors focus:outline-none"
+            className="relative rounded-md p-2 text-slate-500 hover:bg-slate-200 transition-colors focus:outline-none"
           >
             <Bell className="h-4 w-4" />
             {notifications.count > 0 && (
@@ -371,7 +371,7 @@ export function TopBar({ title }: TopBarProps) {
           <button
             ref={userBtnRef}
             onClick={toggleUserMenu}
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-100 transition-colors focus:outline-none"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-200 transition-colors focus:outline-none"
           >
             {userImage ? (
               <img

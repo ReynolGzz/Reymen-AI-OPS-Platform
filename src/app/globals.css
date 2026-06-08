@@ -56,20 +56,21 @@ body {
   --color-true-white: #ffffff;
 }
 
-/* Brand buttons always need white text */
-.dark [class*="bg-brand-5"],
-.dark [class*="bg-brand-6"],
-.dark [class*="bg-brand-7"],
-.dark [class*="bg-brand-8"],
-.dark [class*="bg-brand-9"] {
+/* Brand buttons always need white text — use [class~=] (word boundary) NOT [class*=]
+   so that "hover:bg-brand-600" does NOT trigger this rule (substring would match it) */
+.dark [class~="bg-brand-500"],
+.dark [class~="bg-brand-600"],
+.dark [class~="bg-brand-700"],
+.dark [class~="bg-brand-800"],
+.dark [class~="bg-brand-900"] {
   color: #ffffff;
 }
-.dark [class*="bg-red-5"],
-.dark [class*="bg-red-6"] {
+.dark [class~="bg-red-500"],
+.dark [class~="bg-red-600"] {
   color: #ffffff;
 }
-.dark [class*="bg-emerald-5"],
-.dark [class*="bg-emerald-6"] {
+.dark [class~="bg-emerald-500"],
+.dark [class~="bg-emerald-600"] {
   color: #ffffff;
 }
 
