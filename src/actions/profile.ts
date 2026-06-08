@@ -126,7 +126,8 @@ export async function updateOrgLogo(logoUrl: string | null) {
     metadata: { logoUrl },
   });
 
-  revalidatePath("/portal");
+  revalidatePath("/portal", "layout");
+  revalidatePath("/admin", "layout");
   return { success: true };
 }
 

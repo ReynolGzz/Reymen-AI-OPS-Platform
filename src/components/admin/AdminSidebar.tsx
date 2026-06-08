@@ -18,10 +18,10 @@ import {
   Upload,
   Loader2,
 } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { usePreferences } from "@/context/preferences";
-import { updateAvatar, removeAvatar } from "@/actions/profile";
+import { updateOrgLogo } from "@/actions/profile";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -65,17 +65,19 @@ const LOGO_PRESETS = [
 
 interface AdminSidebarProps {
   adminName: string;
-  logoUrl?: string | null;
+  /** Organization logo — stored in organization.logoUrl, separate from user.image */
+  orgLogoUrl?: string | null;
+  /** False for super-admins that have no organization */
+  canEditLogo?: boolean;
 }
 
-export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSidebarProps) {
+export function AdminSidebar({ adminName, orgLogoUrl: initialOrgLogoUrl, canEditLogo = false }: AdminSidebarProps) {
   const pathname = usePathname();
   const { t, lang } = usePreferences();
-  const { update } = useSession();
 
   const [logoDialogOpen, setLogoDialogOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState(initialLogoUrl ?? "");
-  const [currentLogoUrl, setCurrentLogoUrl] = useState(initialLogoUrl);
+  const [logoUrl, setLogoUrl] = useState(initialOrgLogoUrl ?? "");
+  const [currentLogoUrl, setCurrentLogoUrl] = useState(initialOrgLogoUrl);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -123,10 +125,7 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
   function handleSaveLogo() {
     startTransition(async () => {
       try {
-        if (logoUrl) {
-          await updateAvatar(logoUrl);
-          await update({ image: logoUrl });
-        }
+        await updateOrgLogo(logoUrl || null);
         setCurrentLogoUrl(logoUrl || null);
         setLogoDialogOpen(false);
         toast.success(t.success);
@@ -137,11 +136,10 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
   }
 
   function handleRemoveLogo() {
-    setLogoUrl("");
     startTransition(async () => {
       try {
-        await removeAvatar();
-        await update({ image: null });
+        await updateOrgLogo(null);
+        setLogoUrl("");
         setCurrentLogoUrl(null);
         setLogoDialogOpen(false);
         toast.success(t.success);
@@ -154,10 +152,17 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
   return (
     <>
       <aside className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white">
-        {/* Logo — clickable to update */}
+        {/* Logo — clickable only when admin has an org */}
         <button
-          onClick={() => { setLogoUrl(currentLogoUrl ?? ""); setLogoDialogOpen(true); }}
-          className="flex h-16 items-center border-b border-slate-200 px-6 w-full text-left group hover:bg-slate-50 transition-colors"
+          onClick={() => {
+            if (!canEditLogo) return;
+            setLogoUrl(currentLogoUrl ?? "");
+            setLogoDialogOpen(true);
+          }}
+          className={cn(
+            "flex h-16 items-center border-b border-slate-200 px-6 w-full text-left transition-colors",
+            canEditLogo ? "group hover:bg-slate-50 cursor-pointer" : "cursor-default"
+          )}
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="relative flex-shrink-0">
@@ -168,9 +173,11 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
                   <Zap className="h-4 w-4 text-white" />
                 </div>
               )}
-              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Upload className="h-3 w-3 text-white" />
-              </div>
+              {canEditLogo && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Upload className="h-3 w-3 text-white" />
+                </div>
+              )}
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-slate-900 leading-none">{adminName}</p>
@@ -215,102 +222,105 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
       </aside>
 
       {/* ── Logo Dialog ──────────────────────────────────────────── */}
-      <Dialog open={logoDialogOpen} onOpenChange={(o) => !o && setLogoDialogOpen(false)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-brand-600" />
-              {t.orgLogoTitle}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {/* Preview */}
-            {logoUrl && (
-              <div className="flex justify-center">
-                <img src={logoUrl} alt="" className="h-20 w-20 rounded-xl object-cover ring-4 ring-brand-100" />
-              </div>
-            )}
+      {canEditLogo && (
+        <Dialog open={logoDialogOpen} onOpenChange={(o) => !o && setLogoDialogOpen(false)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-brand-600" />
+                {t.orgLogoTitle}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              {/* Preview */}
+              {logoUrl && (
+                <div className="flex justify-center">
+                  <img src={logoUrl} alt="" className="h-20 w-20 rounded-xl object-cover ring-4 ring-brand-100" />
+                </div>
+              )}
 
-            {/* Presets */}
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {lang === "es" ? "Avatares predefinidos" : "Preset avatars"}
-              </p>
-              <div className="max-h-64 overflow-y-auto pr-0.5">
-                <div className="grid grid-cols-4 gap-2">
-                  {LOGO_PRESETS.map((url) => (
-                    <button
-                      key={url}
-                      type="button"
-                      onClick={() => setLogoUrl(url)}
-                      className={cn(
-                        "overflow-hidden rounded-lg border-2 transition-all",
-                        logoUrl === url
-                          ? "border-brand-600 scale-105"
-                          : "border-transparent hover:border-brand-300"
-                      )}
-                    >
-                      <img src={url} alt="" className="h-14 w-14 object-cover" />
-                    </button>
-                  ))}
+              {/* Presets */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {lang === "es" ? "Avatares predefinidos" : "Preset avatars"}
+                </p>
+                <div className="max-h-64 overflow-y-auto pr-0.5">
+                  <div className="grid grid-cols-4 gap-2">
+                    {LOGO_PRESETS.map((url) => (
+                      <button
+                        key={url}
+                        type="button"
+                        onClick={() => setLogoUrl(url)}
+                        className={cn(
+                          "overflow-hidden rounded-lg border-2 transition-all",
+                          logoUrl === url
+                            ? "border-brand-600 scale-105"
+                            : "border-transparent hover:border-brand-300"
+                        )}
+                      >
+                        <img src={url} alt="" className="h-14 w-14 object-cover" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* File upload */}
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {lang === "es" ? "O sube desde tu dispositivo" : "Or upload from your device"}
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {lang === "es" ? "Elegir imagen" : "Choose image"}
-              </Button>
-            </div>
+              {/* File upload */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {lang === "es" ? "O sube desde tu dispositivo" : "Or upload from your device"}
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {lang === "es" ? "Elegir imagen" : "Choose image"}
+                </Button>
+              </div>
 
-            {/* Manual URL */}
-            <div className="space-y-1.5">
-              <Label htmlFor="admin-logo-url">{t.logoUrl}</Label>
-              <Input
-                id="admin-logo-url"
-                type="url"
-                placeholder="https://..."
-                value={logoUrl.startsWith("data:") ? "" : logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-              />
+              {/* Manual URL */}
+              <div className="space-y-1.5">
+                <Label htmlFor="admin-logo-url">{t.logoUrl}</Label>
+                <Input
+                  id="admin-logo-url"
+                  type="url"
+                  placeholder="https://..."
+                  value={logoUrl.startsWith("data:") ? "" : logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLogoDialogOpen(false)}>{t.cancel}</Button>
-            {currentLogoUrl && (
-              <Button
-                variant="outline"
-                className="text-red-600 border-red-200 hover:bg-red-50"
-                disabled={isPending}
-                onClick={handleRemoveLogo}
-              >
-                {t.removeLogo}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setLogoDialogOpen(false)}>{t.cancel}</Button>
+              {currentLogoUrl && (
+                <Button
+                  variant="outline"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  disabled={isPending}
+                  onClick={handleRemoveLogo}
+                >
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                  {t.removeLogo}
+                </Button>
+              )}
+              <Button onClick={handleSaveLogo} disabled={isPending || !logoUrl}>
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                {t.save}
               </Button>
-            )}
-            <Button onClick={handleSaveLogo} disabled={isPending || !logoUrl}>
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              {t.save}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
