@@ -18,7 +18,7 @@ import {
   Upload,
   Loader2,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { usePreferences } from "@/context/preferences";
 import { updateAvatar, removeAvatar } from "@/actions/profile";
@@ -71,6 +71,7 @@ interface AdminSidebarProps {
 export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSidebarProps) {
   const pathname = usePathname();
   const { t, lang } = usePreferences();
+  const { update } = useSession();
 
   const [logoDialogOpen, setLogoDialogOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl ?? "");
@@ -124,6 +125,7 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
       try {
         if (logoUrl) {
           await updateAvatar(logoUrl);
+          await update({ image: logoUrl });
         }
         setCurrentLogoUrl(logoUrl || null);
         setLogoDialogOpen(false);
@@ -139,6 +141,7 @@ export function AdminSidebar({ adminName, logoUrl: initialLogoUrl }: AdminSideba
     startTransition(async () => {
       try {
         await removeAvatar();
+        await update({ image: null });
         setCurrentLogoUrl(null);
         setLogoDialogOpen(false);
         toast.success(t.success);

@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePreferences, type Theme, type Lang } from "@/context/preferences";
 import { updateAvatar, changePassword, removeAvatar } from "@/actions/profile";
-import { startImpersonation, stopImpersonation, getPortalUsers, type PortalUser } from "@/actions/impersonation";
+import { startImpersonation, stopImpersonation, getPortalUsers, refreshImpersonationImage, type PortalUser } from "@/actions/impersonation";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -202,8 +202,11 @@ export function TopBar({ title }: TopBarProps) {
       try {
         await updateAvatar(avatarPreview);
         setUserImage(avatarPreview);
-        // Don't touch the admin's JWT token while impersonating another user
-        if (!isImpersonating) await update({ image: avatarPreview });
+        if (isImpersonating) {
+          await refreshImpersonationImage(avatarPreview);
+        } else {
+          await update({ image: avatarPreview });
+        }
         setActiveDialog(null);
         toast.success(lang === "es" ? "Avatar actualizado" : "Avatar updated");
       } catch (e) {
@@ -218,7 +221,11 @@ export function TopBar({ title }: TopBarProps) {
         await removeAvatar();
         setUserImage(null);
         setAvatarPreview(null);
-        if (!isImpersonating) await update({ image: null });
+        if (isImpersonating) {
+          await refreshImpersonationImage(null);
+        } else {
+          await update({ image: null });
+        }
         setActiveDialog(null);
         toast.success(lang === "es" ? "Avatar eliminado" : "Avatar removed");
       } catch (e) {

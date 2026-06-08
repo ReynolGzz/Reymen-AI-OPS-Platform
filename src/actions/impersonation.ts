@@ -79,3 +79,18 @@ export async function stopImpersonation(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete("reymen-impersonate");
 }
+
+export async function refreshImpersonationImage(newImage: string | null): Promise<void> {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get("reymen-impersonate")?.value;
+  if (!raw) return;
+  const imp = JSON.parse(raw);
+  imp.targetImage = newImage;
+  cookieStore.set("reymen-impersonate", JSON.stringify(imp), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 8,
+    sameSite: "lax",
+  });
+}
