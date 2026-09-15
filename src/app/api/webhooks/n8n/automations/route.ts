@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWebhookAuthorized } from "@/lib/webhook-validator";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { notifyAdmins } from "@/lib/admin-notifications";
+import { automationFailureEmail } from "@/lib/email-templates";
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-reymen-signature") ?? "";
@@ -33,7 +35,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const automation = await prisma.automation.findUnique({ where: { id: automationId } });
+  const automation = await prisma.automation.findUnique({
+    where: { id: automationId },
+    include: { organization: { select: { name: true } } },
+  });
 
   // Authenticate against this specific automation's own webhook secret,
   // matching what the admin panel's Webhook Info dialog documents to n8n.
@@ -80,6 +85,10 @@ export async function POST(req: NextRequest) {
         where: { id: payload.automationId },
         data: { status: "ERROR" },
       });
+
+      const adminUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/admin/automations`;
+      const email = automationFailureEmail(automation.organization.name, automation.name, adminUrl);
+      await notifyAdmins(email);
     }
 
     await prisma.webhookEvent.update({

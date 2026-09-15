@@ -71,3 +71,17 @@ export function automationFailureEmail(orgName: string, automationName: string, 
     text: `${automationName} (${orgName}) reportó una falla. Ver: ${portalUrl}`,
   };
 }
+
+export function newClientRequestEmail(orgName: string, requestTitle: string, portalUrl: string) {
+  return {
+    subject: `📩 Nueva solicitud de ${orgName}`,
+    html: `${brandHeader}
+      <h1 style="font-size:20px;color:#0f172a;">Nueva solicitud de cliente</h1>
+      <p style="font-size:14px;color:#475569;line-height:1.6;">
+        <strong>${orgName}</strong> envió una nueva solicitud: <strong>${requestTitle}</strong>.
+      </p>
+      <p style="margin: 24px 0;">${button(portalUrl, "Ver solicitud")}</p>
+      ${brandFooter}`,
+    text: `${orgName} envió una nueva solicitud: ${requestTitle}. Ver: ${portalUrl}`,
+  };
+}
