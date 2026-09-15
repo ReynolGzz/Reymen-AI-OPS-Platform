@@ -5,7 +5,10 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
 
-  const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/forgot-password");
+  const isAuthPage =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password");
   const isAdminRoute = pathname.startsWith("/admin");
   const isPortalRoute = pathname.startsWith("/portal");
   const isWebhookRoute = pathname.startsWith("/api/webhooks");
