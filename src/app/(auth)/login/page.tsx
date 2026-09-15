@@ -43,7 +43,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        toast.error("Credenciales incorrectas");
+        if (result.code === "rate_limited") {
+          toast.error("Demasiados intentos. Espera unos minutos e inténtalo de nuevo.");
+        } else {
+          toast.error("Credenciales incorrectas");
+        }
         return;
       }
 

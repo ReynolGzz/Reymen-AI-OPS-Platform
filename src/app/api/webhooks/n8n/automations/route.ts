@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWebhookAuthorized } from "@/lib/webhook-validator";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-reymen-signature") ?? "";
@@ -17,9 +18,22 @@ export async function POST(req: NextRequest) {
   }
 
   const automationId = (parsedBody as { automationId?: string }).automationId;
-  const automation = automationId
-    ? await prisma.automation.findUnique({ where: { id: automationId } })
-    : null;
+  if (!automationId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate limit on the claimed automationId before authenticating, so
+  // brute-forcing a webhookSecret for a known automation gets throttled
+  // the same as legitimate high-volume traffic would.
+  const rateLimit = await checkRateLimit(`webhook:automations:${automationId}`, { limit: 60, windowMs: 60 * 1000 });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
+  }
+
+  const automation = await prisma.automation.findUnique({ where: { id: automationId } });
 
   // Authenticate against this specific automation's own webhook secret,
   // matching what the admin panel's Webhook Info dialog documents to n8n.

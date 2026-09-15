@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createTestOrg, createTestUser, cleanupOrg } from "@/test/helpers";
@@ -15,6 +15,13 @@ describe("password reset flow", () => {
   beforeAll(async () => {
     org = await createTestOrg("Password Reset Org");
     user = await createTestUser(org.id, "OWNER", "pwreset");
+  });
+
+  // requestPasswordReset is itself rate-limited (3/hour/email, tested separately
+  // in rate-limit.test.ts) — clear it here so these tests exercise the reset
+  // flow itself, not that limit.
+  beforeEach(async () => {
+    await prisma.rateLimitHit.deleteMany({ where: { key: `password-reset:${user.email.toLowerCase()}` } });
   });
 
   afterAll(async () => {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWebhookAuthorized } from "@/lib/webhook-validator";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET ?? "";
 
@@ -14,6 +15,14 @@ export async function POST(req: NextRequest) {
 
   if (!isWebhookAuthorized(rawBody, signature, plainSecret, WEBHOOK_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await checkRateLimit(`webhook:conversations:${orgId}`, { limit: 120, windowMs: 60 * 1000 });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
   }
 
   let parsedBody: unknown;

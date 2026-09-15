@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { passwordResetEmail } from "@/lib/email-templates";
 import { logAudit } from "@/lib/audit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const RESET_TOKEN_TTL_MINUTES = 30;
 
@@ -23,6 +24,14 @@ const emailSchema = z.string().email();
 export async function requestPasswordReset(email: string): Promise<{ success: true }> {
   const parsed = emailSchema.safeParse(email);
   if (!parsed.success) return { success: true };
+
+  // Silently drop the request past the limit — the response is always the
+  // same either way, so this can't be used to enumerate accounts.
+  const rateLimit = await checkRateLimit(`password-reset:${parsed.data.toLowerCase()}`, {
+    limit: 3,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!rateLimit.allowed) return { success: true };
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data, isActive: true } });
   if (user) {

@@ -1,11 +1,21 @@
-import NextAuth, { type DefaultSession } from "next-auth";
+import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "./prisma";
+import { checkRateLimit } from "./rate-limit";
 import type { UserRole } from "@prisma/client";
 export { isAdmin, isClientRole } from "./roles";
+
+class RateLimitedSignin extends CredentialsSignin {
+  code = "rate_limited";
+}
+
+function clientIp(request?: Request): string | null {
+  const forwarded = request?.headers.get("x-forwarded-for");
+  return forwarded ? forwarded.split(",")[0].trim() : null;
+}
 
 declare module "next-auth" {
   interface Session {
@@ -46,11 +56,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
         const { email, password } = parsed.data;
+
+        const ip = clientIp(request);
+        const [emailLimit, ipLimit] = await Promise.all([
+          checkRateLimit(`login:email:${email.toLowerCase()}`, { limit: 5, windowMs: 10 * 60 * 1000 }),
+          ip
+            ? checkRateLimit(`login:ip:${ip}`, { limit: 20, windowMs: 10 * 60 * 1000 })
+            : Promise.resolve({ allowed: true }),
+        ]);
+        if (!emailLimit.allowed || !ipLimit.allowed) throw new RateLimitedSignin();
 
         const user = await prisma.user.findUnique({
           where: { email, isActive: true },

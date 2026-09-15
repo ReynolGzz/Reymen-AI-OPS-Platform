@@ -495,3 +495,15 @@ enum InstallationStatus {
   FAILED
   UNINSTALLED
 }
+
+// ─── RATE LIMITING ──────────────────────────────────────────────────
+// DB-backed sliding window so limits hold across serverless instances
+// without needing Redis. One row per attempt; see src/lib/rate-limit.ts.
+
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  key       String // e.g. "login:email:user@example.com", "login:ip:1.2.3.4", "webhook:automationId"
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
