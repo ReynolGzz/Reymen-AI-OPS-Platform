@@ -259,6 +259,11 @@ export const strings = {
     adminNoRequestsShort: "Sin solicitudes",
     adminInstalledTemplates: "Templates instalados",
     adminNoTemplates: "Sin templates instalados",
+    adminSuspendClient: "Suspender cliente",
+    adminReactivateClient: "Reactivar cliente",
+    adminSuspendClientConfirm: "¿Suspender este cliente? Sus usuarios no podrán acceder a la plataforma hasta que se reactive.",
+    adminClientSuspended: "Cliente suspendido",
+    adminClientReactivated: "Cliente reactivado",
 
     // ── Admin requests ────────────────────────────────────────
     adminOpenPlural: "abiertas",
@@ -294,6 +299,7 @@ export const strings = {
     adminFilterAll: "Todos",
     adminActionClientCreate: "Cliente creado",
     adminActionPlanChange: "Plan cambiado",
+    adminActionClientStatusChange: "Estado del cliente cambiado",
     adminActionTeamInvite: "Usuario invitado",
     adminActionTeamRemove: "Usuario removido",
     adminActionTemplateInstall: "Template instalado",
@@ -713,6 +719,11 @@ export const strings = {
     adminNoRequestsShort: "No requests",
     adminInstalledTemplates: "Installed templates",
     adminNoTemplates: "No templates installed",
+    adminSuspendClient: "Suspend client",
+    adminReactivateClient: "Reactivate client",
+    adminSuspendClientConfirm: "Suspend this client? Its users won't be able to access the platform until it's reactivated.",
+    adminClientSuspended: "Client suspended",
+    adminClientReactivated: "Client reactivated",
 
     // ── Admin requests ────────────────────────────────────────
     adminOpenPlural: "open",
@@ -748,6 +759,7 @@ export const strings = {
     adminFilterAll: "All",
     adminActionClientCreate: "Client created",
     adminActionPlanChange: "Plan changed",
+    adminActionClientStatusChange: "Client status changed",
     adminActionTeamInvite: "User invited",
     adminActionTeamRemove: "User removed",
     adminActionTemplateInstall: "Template installed",

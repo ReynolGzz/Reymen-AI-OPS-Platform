@@ -22,7 +22,7 @@ export async function createClient(formData: FormData) {
 
   const parsed = createClientSchema.safeParse({
     orgName: formData.get("orgName"),
-    orgIndustry: formData.get("orgIndustry"),
+    orgIndustry: formData.get("orgIndustry") || undefined,
     userName: formData.get("userName"),
     userEmail: formData.get("userEmail"),
     password: formData.get("password"),
@@ -100,7 +100,17 @@ export async function updateClientStatus(orgId: string, isActive: boolean) {
     data: { isActive },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    organizationId: orgId,
+    action: "client.status_change",
+    resource: "Organization",
+    resourceId: orgId,
+    metadata: { isActive },
+  });
+
   revalidatePath("/admin/clients");
+  revalidatePath(`/admin/clients/${orgId}`);
   return { success: true };
 }
 

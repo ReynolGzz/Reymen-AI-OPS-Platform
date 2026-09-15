@@ -3,31 +3,43 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWebhookAuthorized } from "@/lib/webhook-validator";
 
-const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET ?? "";
-
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-reymen-signature") ?? "";
   const plainSecret = req.headers.get("x-reymen-secret") ?? "";
-  const orgId = req.headers.get("x-reymen-orgid") ?? "";
 
   const rawBody = await req.text();
 
-  if (!isWebhookAuthorized(rawBody, signature, plainSecret, WEBHOOK_SECRET)) {
+  let parsedBody: unknown;
+  try {
+    parsedBody = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const automationId = (parsedBody as { automationId?: string }).automationId;
+  const automation = automationId
+    ? await prisma.automation.findUnique({ where: { id: automationId } })
+    : null;
+
+  // Authenticate against this specific automation's own webhook secret,
+  // matching what the admin panel's Webhook Info dialog documents to n8n.
+  if (!automation || !isWebhookAuthorized(rawBody, signature, plainSecret, automation.webhookSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const orgId = automation.organizationId;
 
   const webhookEvent = await prisma.webhookEvent.create({
     data: {
       organizationId: orgId,
       source: "n8n",
       eventType: "automation.event",
-      payload: JSON.parse(rawBody),
+      payload: parsedBody as Prisma.InputJsonValue,
       status: "PROCESSING",
     },
   });
 
   try {
-    const payload = JSON.parse(rawBody) as {
+    const payload = parsedBody as {
       automationId: string;
       type: string;
       status: "SUCCESS" | "FAILED" | "PENDING";
@@ -35,12 +47,6 @@ export async function POST(req: NextRequest) {
       errorMessage?: string;
       duration?: number;
     };
-
-    const automation = await prisma.automation.findFirst({
-      where: { id: payload.automationId, organizationId: orgId },
-    });
-
-    if (!automation) throw new Error("Automation not found");
 
     await prisma.automationEvent.create({
       data: {

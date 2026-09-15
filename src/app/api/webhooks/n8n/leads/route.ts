@@ -16,19 +16,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let parsedBody: unknown;
+  try {
+    parsedBody = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
   // Store raw event first (reliability pattern)
   const webhookEvent = await prisma.webhookEvent.create({
     data: {
       organizationId: orgId,
       source: "n8n",
       eventType: "lead.created",
-      payload: JSON.parse(rawBody),
+      payload: parsedBody as Prisma.InputJsonValue,
       status: "PROCESSING",
     },
   });
 
   try {
-    const payload = JSON.parse(rawBody) as {
+    const payload = parsedBody as {
       name: string;
       email?: string;
       phone?: string;

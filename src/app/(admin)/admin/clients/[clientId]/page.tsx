@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ChangePlanDialog } from "@/components/admin/ChangePlanDialog";
+import { ToggleClientStatusButton } from "@/components/admin/ToggleClientStatusButton";
 import { formatDate } from "@/lib/utils";
 
 async function getClientDetail(clientId: string) {
@@ -56,6 +57,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
         actions={
           <div className="flex items-center gap-2">
             <ChangePlanDialog orgId={client.id} currentPlan={client.plan} />
+            <ToggleClientStatusButton orgId={client.id} isActive={client.isActive} />
             <Badge variant={client.isActive ? "success" : "destructive"}>
               {client.isActive ? t.statusActive : t.inactive}
             </Badge>
