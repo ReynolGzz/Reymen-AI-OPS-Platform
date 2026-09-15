@@ -8,9 +8,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await auth();
   if (!session || !isAdmin(session.user.role)) return redirect("/login");
 
-  const orgLogoUrl = session.user.organizationId
+  const hasOrganization = !!session.user.organizationId;
+  const orgLogoUrl = hasOrganization
     ? (await prisma.organization.findUnique({
-        where: { id: session.user.organizationId },
+        where: { id: session.user.organizationId! },
         select: { logoUrl: true },
       }))?.logoUrl ?? null
     : null;
@@ -20,7 +21,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <AdminSidebar
         adminName={session.user.name ?? "Reymen"}
         orgLogoUrl={orgLogoUrl}
-        canEditLogo={!!session.user.organizationId}
+        personalImageUrl={session.user.image ?? null}
+        hasOrganization={hasOrganization}
       />
       <div className="flex flex-1 flex-col min-h-0">
         <TopBar />
