@@ -8,6 +8,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await auth();
   if (!session || !isAdmin(session.user.role)) return redirect("/login");
 
+  // Re-validated on every request (not just at login) so deactivating an
+  // admin account takes effect immediately rather than only blocking their
+  // next sign-in.
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id, isActive: true },
+    select: { id: true },
+  });
+  if (!currentUser) return redirect("/login");
+
   const hasOrganization = !!session.user.organizationId;
   const orgLogoUrl = hasOrganization
     ? (await prisma.organization.findUnique({
