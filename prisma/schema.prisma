@@ -10,15 +10,18 @@ datasource db {
 // ─── TENANT ──────────────────────────────────────────────────────
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  industry  String?
-  logoUrl   String?
-  isActive  Boolean  @default(true)
-  plan      String   @default("starter")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       String   @id @default(cuid())
+  name                     String
+  slug                     String   @unique
+  industry                 String?
+  logoUrl                  String?
+  isActive                 Boolean  @default(true)
+  plan                     String   @default("starter")
+  stripeCustomerId         String?  @unique
+  stripeSubscriptionId     String?  @unique
+  stripeSubscriptionStatus String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
   users                 User[]
   leads                 Lead[]
