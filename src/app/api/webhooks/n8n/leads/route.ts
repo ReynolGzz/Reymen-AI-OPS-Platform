@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWebhookAuthorized } from "@/lib/webhook-validator";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { assertPlanCapacity } from "@/lib/plan-limits";
+import { processLeadEvent } from "@/lib/webhook-processors";
 
 const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET ?? "";
 
@@ -41,35 +41,12 @@ export async function POST(req: NextRequest) {
       eventType: "lead.created",
       payload: parsedBody as Prisma.InputJsonValue,
       status: "PROCESSING",
+      attempts: 1,
     },
   });
 
   try {
-    const payload = parsedBody as {
-      name: string;
-      email?: string;
-      phone?: string;
-      source?: string;
-      metadata?: Record<string, unknown>;
-    };
-
-    if (!payload.name) throw new Error("Missing lead name");
-
-    const org = await prisma.organization.findUnique({ where: { id: orgId, isActive: true } });
-    if (!org) throw new Error("Organization not found");
-
-    await assertPlanCapacity(orgId, "leads");
-
-    await prisma.lead.create({
-      data: {
-        organizationId: orgId,
-        name: payload.name,
-        email: payload.email,
-        phone: payload.phone,
-        source: payload.source ?? "n8n",
-        metadata: payload.metadata as Prisma.InputJsonValue ?? undefined,
-      },
-    });
+    await processLeadEvent(parsedBody, orgId);
 
     await prisma.webhookEvent.update({
       where: { id: webhookEvent.id },

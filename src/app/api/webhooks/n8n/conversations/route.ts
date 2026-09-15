@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWebhookAuthorized } from "@/lib/webhook-validator";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { processConversationEvent } from "@/lib/webhook-processors";
 
 const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET ?? "";
 
@@ -39,51 +40,19 @@ export async function POST(req: NextRequest) {
       eventType: "conversation.message",
       payload: parsedBody as Prisma.InputJsonValue,
       status: "PROCESSING",
+      attempts: 1,
     },
   });
 
   try {
-    const payload = parsedBody as {
-      conversationId?: string;
-      contactPhone: string;
-      contactName?: string;
-      channel: string;
-      message: { role: "USER" | "ASSISTANT" | "SYSTEM"; content: string };
-    };
-
-    let conversation = payload.conversationId
-      ? await prisma.conversation.findFirst({
-          where: { id: payload.conversationId, organizationId: orgId },
-        })
-      : await prisma.conversation.findFirst({
-          where: { organizationId: orgId, contactPhone: payload.contactPhone, status: "OPEN" },
-        });
-
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: {
-          organizationId: orgId,
-          channel: payload.channel,
-          contactPhone: payload.contactPhone,
-          contactName: payload.contactName,
-        },
-      });
-    }
-
-    await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: payload.message.role,
-        content: payload.message.content,
-      },
-    });
+    const { conversationId } = await processConversationEvent(parsedBody, orgId);
 
     await prisma.webhookEvent.update({
       where: { id: webhookEvent.id },
       data: { status: "PROCESSED", processedAt: new Date() },
     });
 
-    return NextResponse.json({ success: true, conversationId: conversation.id });
+    return NextResponse.json({ success: true, conversationId });
   } catch (error) {
     await prisma.webhookEvent.update({
       where: { id: webhookEvent.id },

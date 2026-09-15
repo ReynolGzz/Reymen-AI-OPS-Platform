@@ -13,9 +13,11 @@ export default auth((req) => {
   const isPortalRoute = pathname.startsWith("/portal");
   const isWebhookRoute = pathname.startsWith("/api/webhooks");
   const isAuthApiRoute = pathname.startsWith("/api/auth");
+  const isCronRoute = pathname.startsWith("/api/cron");
 
-  // Public routes
-  if (isAuthPage || isWebhookRoute || isAuthApiRoute) return NextResponse.next();
+  // Public routes — webhook and cron routes authenticate themselves
+  // (HMAC signature / CRON_SECRET) rather than via session
+  if (isAuthPage || isWebhookRoute || isAuthApiRoute || isCronRoute) return NextResponse.next();
 
   // No session → redirect to login
   if (!session) {

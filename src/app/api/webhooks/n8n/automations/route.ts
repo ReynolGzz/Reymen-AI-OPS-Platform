@@ -3,8 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWebhookAuthorized } from "@/lib/webhook-validator";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { notifyAdmins } from "@/lib/admin-notifications";
-import { automationFailureEmail } from "@/lib/email-templates";
+import { processAutomationEvent } from "@/lib/webhook-processors";
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-reymen-signature") ?? "";
@@ -35,10 +34,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const automation = await prisma.automation.findUnique({
-    where: { id: automationId },
-    include: { organization: { select: { name: true } } },
-  });
+  const automation = await prisma.automation.findUnique({ where: { id: automationId } });
 
   // Authenticate against this specific automation's own webhook secret,
   // matching what the admin panel's Webhook Info dialog documents to n8n.
@@ -54,42 +50,12 @@ export async function POST(req: NextRequest) {
       eventType: "automation.event",
       payload: parsedBody as Prisma.InputJsonValue,
       status: "PROCESSING",
+      attempts: 1,
     },
   });
 
   try {
-    const payload = parsedBody as {
-      automationId: string;
-      type: string;
-      status: "SUCCESS" | "FAILED" | "PENDING";
-      payload?: Record<string, unknown>;
-      errorMessage?: string;
-      duration?: number;
-    };
-
-    await prisma.automationEvent.create({
-      data: {
-        automationId: payload.automationId,
-        organizationId: orgId,
-        type: payload.type,
-        status: payload.status,
-        payload: payload.payload as Prisma.InputJsonValue ?? undefined,
-        errorMessage: payload.errorMessage,
-        duration: payload.duration,
-      },
-    });
-
-    // Update automation status if error
-    if (payload.status === "FAILED") {
-      await prisma.automation.update({
-        where: { id: payload.automationId },
-        data: { status: "ERROR" },
-      });
-
-      const adminUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/admin/automations`;
-      const email = automationFailureEmail(automation.organization.name, automation.name, adminUrl);
-      await notifyAdmins(email);
-    }
+    await processAutomationEvent(parsedBody, orgId);
 
     await prisma.webhookEvent.update({
       where: { id: webhookEvent.id },

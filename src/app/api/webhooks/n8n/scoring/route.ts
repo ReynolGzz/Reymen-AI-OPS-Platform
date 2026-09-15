@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWebhookAuthorized } from "@/lib/webhook-validator";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { processScoringEvent } from "@/lib/webhook-processors";
 
 const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET ?? "";
 
@@ -39,32 +40,12 @@ export async function POST(req: NextRequest) {
       eventType: "lead.scored",
       payload: parsedBody as Prisma.InputJsonValue,
       status: "PROCESSING",
+      attempts: 1,
     },
   });
 
   try {
-    const payload = parsedBody as {
-      leadId: string;
-      score: number;
-      reason?: string;
-    };
-
-    if (payload.score < 0 || payload.score > 100) {
-      throw new Error("Score must be between 0 and 100");
-    }
-
-    const lead = await prisma.lead.findFirst({
-      where: { id: payload.leadId, organizationId: orgId, deletedAt: null },
-    });
-    if (!lead) throw new Error("Lead not found");
-
-    await prisma.lead.update({
-      where: { id: payload.leadId },
-      data: {
-        score: Math.round(payload.score),
-        scoreReason: payload.reason,
-      },
-    });
+    await processScoringEvent(parsedBody, orgId);
 
     await prisma.webhookEvent.update({
       where: { id: webhookEvent.id },

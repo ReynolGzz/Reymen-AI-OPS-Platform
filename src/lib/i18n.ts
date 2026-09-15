@@ -96,6 +96,8 @@ export const strings = {
     statusSuccess: "Exitoso",
     statusFailed: "Fallido",
     statusRetrying: "Reintentando",
+    statusProcessing: "Procesando",
+    statusProcessed: "Procesado",
 
     // ── Dashboard ────────────────────────────────────────────
     welcomeBack: "Bienvenido de vuelta",
@@ -229,6 +231,22 @@ export const strings = {
     adminNavEscalations: "Escalaciones",
     adminNavMetrics: "Métricas",
     adminNavAudit: "Auditoría",
+    adminNavWebhooks: "Webhooks",
+
+    // ── Admin webhooks ────────────────────────────────────────
+    adminWebhooksTitle: "Eventos de Webhook",
+    adminWebhooksDesc: "eventos registrados",
+    adminWebhooksRetryAll: "Reintentar todos los fallidos",
+    adminWebhooksRetry: "Reintentar",
+    adminWebhooksRetrying: "Reintentando...",
+    adminWebhooksNoEvents: "Sin eventos de webhook",
+    adminWebhooksNoEventsDesc: "Los eventos entrantes de n8n aparecerán aquí.",
+    adminWebhooksAttempts: "intentos",
+    adminWebhooksMaxAttemptsReached: "Máximo de intentos alcanzado",
+    adminWebhooksRetrySuccess: "Evento reprocesado con éxito",
+    adminWebhooksRetryFailed: "El reintento falló nuevamente",
+    adminWebhooksFilterAll: "Todos",
+    adminWebhooksFilterFailed: "Fallidos",
 
     // ── Admin dashboard ───────────────────────────────────────
     adminActiveClients: "Clientes activos",
@@ -557,6 +575,8 @@ export const strings = {
     statusSuccess: "Successful",
     statusFailed: "Failed",
     statusRetrying: "Retrying",
+    statusProcessing: "Processing",
+    statusProcessed: "Processed",
 
     // ── Dashboard ────────────────────────────────────────────
     welcomeBack: "Welcome back",
@@ -689,6 +709,22 @@ export const strings = {
     adminNavEscalations: "Escalations",
     adminNavMetrics: "Metrics",
     adminNavAudit: "Audit",
+    adminNavWebhooks: "Webhooks",
+
+    // ── Admin webhooks ────────────────────────────────────────
+    adminWebhooksTitle: "Webhook Events",
+    adminWebhooksDesc: "events recorded",
+    adminWebhooksRetryAll: "Retry all failed",
+    adminWebhooksRetry: "Retry",
+    adminWebhooksRetrying: "Retrying...",
+    adminWebhooksNoEvents: "No webhook events",
+    adminWebhooksNoEventsDesc: "Incoming n8n events will appear here.",
+    adminWebhooksAttempts: "attempts",
+    adminWebhooksMaxAttemptsReached: "Maximum attempts reached",
+    adminWebhooksRetrySuccess: "Event reprocessed successfully",
+    adminWebhooksRetryFailed: "Retry failed again",
+    adminWebhooksFilterAll: "All",
+    adminWebhooksFilterFailed: "Failed",
 
     // ── Admin dashboard ───────────────────────────────────────
     adminActiveClients: "Active clients",
