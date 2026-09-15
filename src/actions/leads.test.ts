@@ -93,4 +93,25 @@ describe("leads actions", () => {
     expect(lead).not.toBeNull();
     expect(lead?.deletedAt).not.toBeNull();
   });
+
+  it("blocks creating a lead once the org's plan limit is reached", async () => {
+    const orgC = await createTestOrg("Leads Plan Limit Org");
+    await prisma.organization.update({ where: { id: orgC.id }, data: { plan: "starter" } });
+    const userC = await createTestUser(orgC.id, "OWNER", "leads-owner-c");
+    authMock.mockResolvedValue(fakeSession({ id: userC.id, role: "OWNER", organizationId: orgC.id }));
+
+    await prisma.lead.createMany({
+      data: Array.from({ length: 500 }, (_, i) => ({
+        organizationId: orgC.id,
+        name: `Lead ${i}`,
+        source: "manual",
+      })),
+    });
+
+    const fd = new FormData();
+    fd.set("name", "One Too Many");
+    await expect(createLead(fd)).rejects.toThrow(/límite de leads/);
+
+    await cleanupOrg(orgC.id);
+  });
 });

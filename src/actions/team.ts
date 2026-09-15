@@ -9,6 +9,7 @@ import { can } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { teamInviteEmail } from "@/lib/email-templates";
+import { assertPlanCapacity } from "@/lib/plan-limits";
 import type { UserRole } from "@prisma/client";
 
 const inviteSchema = z.object({
@@ -33,6 +34,8 @@ export async function inviteTeamMember(data: {
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) throw new Error("Ya existe un usuario con ese email");
+
+  await assertPlanCapacity(session.user.organizationId, "users");
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 

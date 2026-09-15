@@ -19,6 +19,7 @@ describe("team actions", () => {
   beforeAll(async () => {
     org = await createTestOrg("Team Test Org");
     otherOrg = await createTestOrg("Team Test Other Org");
+    await prisma.organization.update({ where: { id: org.id }, data: { plan: "professional" } });
     owner = await createTestUser(org.id, "OWNER", "team-owner");
     viewer = await createTestUser(org.id, "VIEWER", "team-viewer");
   });
@@ -71,5 +72,19 @@ describe("team actions", () => {
   it("prevents a user from removing themselves", async () => {
     authMock.mockResolvedValue(fakeSession({ id: owner.id, role: "OWNER", organizationId: org.id }));
     await expect(removeTeamMember(owner.id)).rejects.toThrow(/ti mismo/i);
+  });
+
+  it("blocks inviting a team member once the org's plan limit is reached", async () => {
+    const limitedOrg = await createTestOrg("Team Plan Limit Org");
+    await prisma.organization.update({ where: { id: limitedOrg.id }, data: { plan: "starter" } });
+    const limitedOwner = await createTestUser(limitedOrg.id, "OWNER", "limited-owner");
+    await createTestUser(limitedOrg.id, "AGENT", "limited-agent");
+    authMock.mockResolvedValue(fakeSession({ id: limitedOwner.id, role: "OWNER", organizationId: limitedOrg.id }));
+
+    await expect(
+      inviteTeamMember({ name: "One Too Many", email: `otm.${Date.now()}@test.local`, role: "AGENT", password: "password123" })
+    ).rejects.toThrow(/límite de usuarios/);
+
+    await cleanupOrg(limitedOrg.id);
   });
 });

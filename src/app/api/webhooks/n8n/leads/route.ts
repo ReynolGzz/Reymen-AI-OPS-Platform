@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isWebhookAuthorized } from "@/lib/webhook-validator";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { assertPlanCapacity } from "@/lib/plan-limits";
 
 const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET ?? "";
 
@@ -56,6 +57,8 @@ export async function POST(req: NextRequest) {
 
     const org = await prisma.organization.findUnique({ where: { id: orgId, isActive: true } });
     if (!org) throw new Error("Organization not found");
+
+    await assertPlanCapacity(orgId, "leads");
 
     await prisma.lead.create({
       data: {
