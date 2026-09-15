@@ -14,10 +14,15 @@ export default auth((req) => {
   const isWebhookRoute = pathname.startsWith("/api/webhooks");
   const isAuthApiRoute = pathname.startsWith("/api/auth");
   const isCronRoute = pathname.startsWith("/api/cron");
+  const isHealthRoute = pathname.startsWith("/api/health");
 
   // Public routes — webhook and cron routes authenticate themselves
-  // (HMAC signature / CRON_SECRET) rather than via session
-  if (isAuthPage || isWebhookRoute || isAuthApiRoute || isCronRoute) return NextResponse.next();
+  // (HMAC signature / CRON_SECRET) rather than via session, and the
+  // health check must be reachable by load balancers/uptime monitors
+  // without a session
+  if (isAuthPage || isWebhookRoute || isAuthApiRoute || isCronRoute || isHealthRoute) {
+    return NextResponse.next();
+  }
 
   // No session → redirect to login
   if (!session) {
