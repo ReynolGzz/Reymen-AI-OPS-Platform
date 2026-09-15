@@ -1,5 +1,13 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
+import { authConfig } from "@/lib/auth.config";
+
+// Middleware runs on every request, so it uses the edge-safe config alone
+// (no Credentials provider, no PrismaAdapter) instead of importing the full
+// auth() from @/lib/auth — that would pull bcrypt, the Prisma client and
+// otpauth into the middleware bundle for no reason, since middleware only
+// ever reads the already-issued JWT, it never signs in.
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;

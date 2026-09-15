@@ -38,6 +38,7 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   images: {
     // A wildcard hostname here would let next/image's server-side optimizer
     // fetch attacker-chosen HTTPS URLs (SSRF/internal port scanning/DoS) the

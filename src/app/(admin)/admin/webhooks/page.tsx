@@ -17,7 +17,18 @@ async function getWebhookEvents(filter?: string) {
     where: filter === "failed" ? { status: "FAILED" } : {},
     orderBy: { createdAt: "desc" },
     take: 100,
-    include: { organization: { select: { name: true } } },
+    // Explicit select (no `payload`) — that column holds the entire raw
+    // webhook body and is never rendered on this list, just noise to pull
+    // and serialize for up to 100 rows on every page load.
+    select: {
+      id: true,
+      status: true,
+      eventType: true,
+      errorMessage: true,
+      attempts: true,
+      createdAt: true,
+      organization: { select: { name: true } },
+    },
   });
 }
 
