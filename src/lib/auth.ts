@@ -5,11 +5,34 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "./prisma";
 import { checkRateLimit } from "./rate-limit";
+import { verifyTotpCode } from "./totp";
 import type { UserRole } from "@prisma/client";
 export { isAdmin, isClientRole } from "./roles";
 
 class RateLimitedSignin extends CredentialsSignin {
   code = "rate_limited";
+}
+
+class TwoFactorRequiredSignin extends CredentialsSignin {
+  code = "totp_required";
+}
+
+class TwoFactorInvalidSignin extends CredentialsSignin {
+  code = "totp_invalid";
+}
+
+async function consumeBackupCode(userId: string, code: string, hashes: string[]): Promise<boolean> {
+  const normalized = code.trim().toUpperCase();
+  for (const hash of hashes) {
+    if (await bcrypt.compare(normalized, hash)) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { totpBackupCodeHashes: hashes.filter((h) => h !== hash) },
+      });
+      return true;
+    }
+  }
+  return false;
 }
 
 function clientIp(request?: Request): string | null {
@@ -40,6 +63,7 @@ declare module "next-auth" {
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
+  totpCode: z.string().optional(),
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -55,12 +79,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        totpCode: { label: "Authenticator code", type: "text" },
       },
       async authorize(credentials, request) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
         const { email, password } = parsed.data;
+        // URLSearchParams (used by the client signIn() call) stringifies an
+        // omitted/undefined field as the literal text "undefined" — treat
+        // that the same as "no code provided".
+        const totpCode =
+          parsed.data.totpCode && parsed.data.totpCode !== "undefined" ? parsed.data.totpCode : undefined;
 
         const ip = clientIp(request);
         const [emailLimit, ipLimit] = await Promise.all([
@@ -81,6 +111,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const isValid = await bcrypt.compare(password, user.passwordHash);
         if (!isValid) return null;
+
+        if (user.totpEnabled) {
+          if (!totpCode) throw new TwoFactorRequiredSignin();
+
+          const validTotp = user.totpSecret ? verifyTotpCode(user.totpSecret, totpCode) : false;
+          const validBackup =
+            !validTotp && (await consumeBackupCode(user.id, totpCode, user.totpBackupCodeHashes));
+          if (!validTotp && !validBackup) throw new TwoFactorInvalidSignin();
+        }
 
         return {
           id: user.id,
