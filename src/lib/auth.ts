@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "./prisma";
 import type { UserRole } from "@prisma/client";
+export { isAdmin, isClientRole } from "./roles";
 
 declare module "next-auth" {
   interface Session {
@@ -139,11 +140,3 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
-
-export function isAdmin(role: UserRole): boolean {
-  return role === "SUPER_ADMIN" || role === "ADMIN";
-}
-
-export function isClientRole(role: UserRole): boolean {
-  return ["OWNER", "MANAGER", "AGENT", "VIEWER", "CLIENT"].includes(role);
-}

@@ -22,9 +22,9 @@ export async function createLead(formData: FormData) {
   const parsed = createLeadSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email") || undefined,
-    phone: formData.get("phone"),
+    phone: formData.get("phone") || undefined,
     source: formData.get("source") || "manual",
-    notes: formData.get("notes"),
+    notes: formData.get("notes") || undefined,
   });
 
   if (!parsed.success) throw new Error("Datos inválidos");
