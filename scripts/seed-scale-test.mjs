@@ -4,8 +4,14 @@
 // for CI, only for manual scale testing in a scratch environment).
 import { PrismaClient } from "@prisma/client";
 import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+// Scratch-environment-only credential, not meant for any real deployment —
+// see the file header. Needed so perf scripts can actually log in as this
+// user rather than just seeding unreachable data.
+export const SCALE_TEST_PASSWORD = "ScaleTest123456";
 
 function secret() {
   return randomBytes(32).toString("hex");
@@ -25,15 +31,16 @@ async function main() {
   });
   console.log("org:", org.id);
 
+  const passwordHash = await bcrypt.hash(SCALE_TEST_PASSWORD, 12);
   await prisma.user.upsert({
     where: { email: "scale@test.local" },
-    update: {},
+    update: { passwordHash },
     create: {
       email: "scale@test.local",
       name: "Scale Test User",
       role: "OWNER",
       organizationId: org.id,
-      passwordHash: "$2b$12$0APBnsAoVXPA3KuUG55K3e//22j27ckpDNZu8LeeyOJ9lzBQPbi8e", // never a valid login password
+      passwordHash,
       isActive: true,
     },
   });
