@@ -10,7 +10,7 @@ vi.mock("@/lib/auth", () => ({ auth: () => authMock() }));
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn().mockResolvedValue({ sent: true }) }));
 const { sendEmail } = await import("@/lib/email");
-const { escalateConversation, resolveConversation } = await import("./conversations");
+const { escalateConversation, resolveConversation, getOlderMessages } = await import("./conversations");
 
 describe("conversations actions", () => {
   let org: { id: string };
@@ -74,5 +74,77 @@ describe("conversations actions", () => {
     const result = await resolveConversation(conv.id);
     expect(result.success).toBe(true);
     expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  describe("getOlderMessages", () => {
+    it("returns the page of messages before the cursor, oldest of that page first", async () => {
+      authMock.mockResolvedValue(fakeSession({ id: owner.id, role: "OWNER", organizationId: org.id }));
+      const conv = await prisma.conversation.create({
+        data: { organizationId: org.id, channel: "whatsapp" },
+      });
+
+      // Create 5 messages with distinct timestamps, oldest first.
+      const created = [];
+      for (let i = 0; i < 5; i++) {
+        const msg = await prisma.message.create({
+          data: {
+            conversationId: conv.id,
+            role: "USER",
+            content: `msg ${i}`,
+            createdAt: new Date(Date.now() + i * 1000),
+          },
+        });
+        created.push(msg);
+      }
+
+      // Ask for messages older than the 4th message (index 3) — should return
+      // indices 0-2, oldest first.
+      const result = await getOlderMessages(conv.id, created[3].id);
+      expect(result.messages.map((m) => m.content)).toEqual(["msg 0", "msg 1", "msg 2"]);
+      expect(result.hasMore).toBe(false);
+    });
+
+    it("reports hasMore when there's a full extra page beyond what's returned", async () => {
+      authMock.mockResolvedValue(fakeSession({ id: owner.id, role: "OWNER", organizationId: org.id }));
+      const conv = await prisma.conversation.create({
+        data: { organizationId: org.id, channel: "whatsapp" },
+      });
+
+      const created = [];
+      // 52 messages: cursor at the last one, 51 older ones (one full page of 50 + 1 more)
+      for (let i = 0; i < 52; i++) {
+        const msg = await prisma.message.create({
+          data: {
+            conversationId: conv.id,
+            role: "USER",
+            content: `msg ${i}`,
+            createdAt: new Date(Date.now() + i * 1000),
+          },
+        });
+        created.push(msg);
+      }
+
+      const result = await getOlderMessages(conv.id, created[51].id);
+      expect(result.messages).toHaveLength(50);
+      expect(result.hasMore).toBe(true);
+      // Oldest-first, and it's the 50 immediately preceding the cursor (indices 1-50).
+      expect(result.messages[0].content).toBe("msg 1");
+      expect(result.messages[49].content).toBe("msg 50");
+    });
+
+    it("rejects a request for a conversation belonging to another organization", async () => {
+      const otherOrg = await createTestOrg("Other Org For Messages");
+      const otherConv = await prisma.conversation.create({
+        data: { organizationId: otherOrg.id, channel: "whatsapp" },
+      });
+      const otherMsg = await prisma.message.create({
+        data: { conversationId: otherConv.id, role: "USER", content: "secret" },
+      });
+
+      authMock.mockResolvedValue(fakeSession({ id: owner.id, role: "OWNER", organizationId: org.id }));
+      await expect(getOlderMessages(otherConv.id, otherMsg.id)).rejects.toThrow(/no encontrada/i);
+
+      await cleanupOrg(otherOrg.id);
+    });
   });
 });

@@ -130,6 +130,11 @@ export const strings = {
     colDate: "Fecha",
     noLeadsFiltered: "No se encontraron leads con esos filtros",
     ofLeads: "de",
+    paginationPrev: "Anterior",
+    paginationNext: "Siguiente",
+    paginationPage: "Página",
+    paginationOf: "de",
+    paginationResults: "resultados",
 
     // ── Automations ──────────────────────────────────────────
     automationsConfigured: "automatizaciones configuradas",
@@ -615,6 +620,11 @@ export const strings = {
     colDate: "Date",
     noLeadsFiltered: "No leads found with those filters",
     ofLeads: "of",
+    paginationPrev: "Previous",
+    paginationNext: "Next",
+    paginationPage: "Page",
+    paginationOf: "of",
+    paginationResults: "results",
 
     // ── Automations ──────────────────────────────────────────
     automationsConfigured: "automations configured",

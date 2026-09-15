@@ -32,6 +32,42 @@ export async function escalateConversation(conversationId: string) {
   return { success: true };
 }
 
+const MESSAGE_PAGE_SIZE = 50;
+
+/** Fetches the page of messages immediately before `beforeMessageId`, oldest of that page first. */
+export async function getOlderMessages(conversationId: string, beforeMessageId: string) {
+  const session = await auth();
+  if (!session?.user.organizationId) throw new Error("No autorizado");
+
+  const conv = await prisma.conversation.findFirst({
+    where: { id: conversationId, organizationId: session.user.organizationId },
+    select: { id: true },
+  });
+  if (!conv) throw new Error("Conversación no encontrada");
+
+  const cursor = await prisma.message.findUnique({
+    where: { id: beforeMessageId },
+    select: { createdAt: true },
+  });
+  if (!cursor) throw new Error("Mensaje no encontrado");
+
+  const older = await prisma.message.findMany({
+    where: {
+      conversationId,
+      // Compound cursor (createdAt, id) rather than createdAt alone, so two
+      // messages sharing the same millisecond timestamp never get skipped.
+      OR: [
+        { createdAt: { lt: cursor.createdAt } },
+        { createdAt: cursor.createdAt, id: { lt: beforeMessageId } },
+      ],
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: MESSAGE_PAGE_SIZE,
+  });
+
+  return { messages: older.reverse(), hasMore: older.length === MESSAGE_PAGE_SIZE };
+}
+
 export async function resolveConversation(conversationId: string) {
   const session = await auth();
   if (!session?.user.organizationId) throw new Error("No autorizado");
