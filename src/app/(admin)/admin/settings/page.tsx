@@ -87,8 +87,7 @@ export default async function AdminSettingsPage() {
                 "AUTH_SECRET",
                 "N8N_BASE_URL",
                 "N8N_WEBHOOK_SECRET",
-                "WEBHOOK_SECRET",
-                "KNOWLEDGE_BASE_API_KEY",
+                "CRON_SECRET",
               ].map((key) => (
                 <div key={key} className="flex items-center gap-3">
                   <span className="text-brand-400">{key}</span>

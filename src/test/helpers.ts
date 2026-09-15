@@ -5,7 +5,7 @@ import type { UserRole } from "@prisma/client";
 export async function createTestOrg(namePrefix: string) {
   const name = `${namePrefix} ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return prisma.organization.create({
-    data: { name, slug: generateSlug(name) },
+    data: { name, slug: generateSlug(name), n8nWebhookSecret: generateWebhookSecret() },
   });
 }
 

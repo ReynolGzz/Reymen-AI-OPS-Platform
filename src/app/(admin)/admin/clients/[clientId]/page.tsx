@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ChangePlanDialog } from "@/components/admin/ChangePlanDialog";
 import { ToggleClientStatusButton } from "@/components/admin/ToggleClientStatusButton";
+import { OrgWebhookInfoDialog } from "@/components/admin/OrgWebhookInfoDialog";
 import { formatDate } from "@/lib/utils";
 
 async function getClientDetail(clientId: string) {
@@ -56,6 +57,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
         description={`${client.slug} · ${client.industry ?? t.adminNoIndustry}`}
         actions={
           <div className="flex items-center gap-2">
+            <OrgWebhookInfoDialog orgId={client.id} secret={client.n8nWebhookSecret} />
             <ChangePlanDialog orgId={client.id} currentPlan={client.plan} />
             <ToggleClientStatusButton orgId={client.id} isActive={client.isActive} />
             <Badge variant={client.isActive ? "success" : "destructive"}>

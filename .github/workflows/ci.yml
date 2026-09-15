@@ -10,8 +10,6 @@ env:
   NEXTAUTH_URL: http://localhost:3000
   NEXT_PUBLIC_APP_URL: http://localhost:3000
   N8N_WEBHOOK_SECRET: ci-only-webhook-secret
-  WEBHOOK_SECRET: ci-only-webhook-secret
-  KNOWLEDGE_BASE_API_KEY: ci-only-kb-key
 
 jobs:
   lint-typecheck-test-build:

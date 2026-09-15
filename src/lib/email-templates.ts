@@ -1,3 +1,20 @@
+/**
+ * Escapes a string for safe interpolation into HTML markup. Every value in
+ * this file that can originate from user-controlled input (org names,
+ * contact names, request titles, automation names) must be passed through
+ * this before being embedded in an `html` template — otherwise a malicious
+ * name/title becomes stored HTML injected straight into an admin's inbox
+ * (phishing links disguised as our own CTAs, tracking pixels, etc.).
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const brandHeader = `
   <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 480px; margin: 0 auto;">
     <p style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; margin-bottom: 24px;">
@@ -12,7 +29,7 @@ const brandFooter = `
 `;
 
 function button(href: string, label: string): string {
-  return `<a href="${href}" style="display:inline-block;background:#1a3ef5;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">${label}</a>`;
+  return `<a href="${escapeHtml(href)}" style="display:inline-block;background:#1a3ef5;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">${escapeHtml(label)}</a>`;
 }
 
 export function passwordResetEmail(resetUrl: string, expiresInMinutes: number) {
@@ -24,17 +41,18 @@ export function passwordResetEmail(resetUrl: string, expiresInMinutes: number) {
         Recibimos una solicitud para restablecer tu contraseña. Este enlace es válido por ${expiresInMinutes} minutos.
       </p>
       <p style="margin: 24px 0;">${button(resetUrl, "Restablecer contraseña")}</p>
-      <p style="font-size:12px;color:#94a3b8;word-break:break-all;">${resetUrl}</p>
+      <p style="font-size:12px;color:#94a3b8;word-break:break-all;">${escapeHtml(resetUrl)}</p>
       ${brandFooter}`,
     text: `Restablece tu contraseña visitando: ${resetUrl} (válido por ${expiresInMinutes} minutos)`,
   };
 }
 
 export function teamInviteEmail(orgName: string, loginUrl: string) {
+  const safeOrgName = escapeHtml(orgName);
   return {
     subject: `Te agregaron al equipo de ${orgName} en Reymen`,
     html: `${brandHeader}
-      <h1 style="font-size:20px;color:#0f172a;">Bienvenido a ${orgName}</h1>
+      <h1 style="font-size:20px;color:#0f172a;">Bienvenido a ${safeOrgName}</h1>
       <p style="font-size:14px;color:#475569;line-height:1.6;">
         Un administrador te agregó al equipo en Reymen AI Ops. Usa tu email y la contraseña temporal que te compartieron para iniciar sesión.
       </p>
@@ -45,12 +63,14 @@ export function teamInviteEmail(orgName: string, loginUrl: string) {
 }
 
 export function escalationAlertEmail(orgName: string, contactName: string, portalUrl: string) {
+  const safeOrgName = escapeHtml(orgName);
+  const safeContactName = escapeHtml(contactName);
   return {
     subject: `⚠️ Conversación escalada — ${orgName}`,
     html: `${brandHeader}
       <h1 style="font-size:20px;color:#0f172a;">Conversación escalada a humano</h1>
       <p style="font-size:14px;color:#475569;line-height:1.6;">
-        ${contactName} necesita atención de tu equipo en <strong>${orgName}</strong>.
+        ${safeContactName} necesita atención de tu equipo en <strong>${safeOrgName}</strong>.
       </p>
       <p style="margin: 24px 0;">${button(portalUrl, "Ver conversación")}</p>
       ${brandFooter}`,
@@ -59,12 +79,14 @@ export function escalationAlertEmail(orgName: string, contactName: string, porta
 }
 
 export function automationFailureEmail(orgName: string, automationName: string, portalUrl: string) {
+  const safeOrgName = escapeHtml(orgName);
+  const safeAutomationName = escapeHtml(automationName);
   return {
     subject: `🔴 Automatización con errores — ${automationName}`,
     html: `${brandHeader}
       <h1 style="font-size:20px;color:#0f172a;">Automatización con errores</h1>
       <p style="font-size:14px;color:#475569;line-height:1.6;">
-        La automatización <strong>${automationName}</strong> de <strong>${orgName}</strong> reportó una falla y requiere revisión.
+        La automatización <strong>${safeAutomationName}</strong> de <strong>${safeOrgName}</strong> reportó una falla y requiere revisión.
       </p>
       <p style="margin: 24px 0;">${button(portalUrl, "Ver automatización")}</p>
       ${brandFooter}`,
@@ -73,12 +95,14 @@ export function automationFailureEmail(orgName: string, automationName: string, 
 }
 
 export function newClientRequestEmail(orgName: string, requestTitle: string, portalUrl: string) {
+  const safeOrgName = escapeHtml(orgName);
+  const safeRequestTitle = escapeHtml(requestTitle);
   return {
     subject: `📩 Nueva solicitud de ${orgName}`,
     html: `${brandHeader}
       <h1 style="font-size:20px;color:#0f172a;">Nueva solicitud de cliente</h1>
       <p style="font-size:14px;color:#475569;line-height:1.6;">
-        <strong>${orgName}</strong> envió una nueva solicitud: <strong>${requestTitle}</strong>.
+        <strong>${safeOrgName}</strong> envió una nueva solicitud: <strong>${safeRequestTitle}</strong>.
       </p>
       <p style="margin: 24px 0;">${button(portalUrl, "Ver solicitud")}</p>
       ${brandFooter}`,

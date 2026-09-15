@@ -5,8 +5,6 @@ import { isWebhookAuthorized } from "@/lib/webhook-validator";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { processConversationEvent } from "@/lib/webhook-processors";
 
-const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET ?? "";
-
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-reymen-signature") ?? "";
   const plainSecret = req.headers.get("x-reymen-secret") ?? "";
@@ -14,7 +12,15 @@ export async function POST(req: NextRequest) {
 
   const rawBody = await req.text();
 
-  if (!isWebhookAuthorized(rawBody, signature, plainSecret, WEBHOOK_SECRET)) {
+  // Authenticate against THIS organization's own webhook secret — never a
+  // shared secret — so knowing another org's id is never enough to forge
+  // requests into it. x-reymen-orgid is just an identifier here, not itself
+  // a credential.
+  const org = orgId
+    ? await prisma.organization.findUnique({ where: { id: orgId }, select: { id: true, n8nWebhookSecret: true } })
+    : null;
+
+  if (!org || !isWebhookAuthorized(rawBody, signature, plainSecret, org.n8nWebhookSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

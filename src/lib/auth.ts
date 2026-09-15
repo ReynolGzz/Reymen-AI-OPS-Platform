@@ -40,6 +40,13 @@ function clientIp(request?: Request): string | null {
   return forwarded ? forwarded.split(",")[0].trim() : null;
 }
 
+// A precomputed bcrypt hash with no matching plaintext. Compared against
+// when the user doesn't exist (or has no password set) so that
+// bcrypt.compare() always runs — otherwise "no such user" returns
+// immediately while "wrong password" takes ~bcrypt's full cost-12 runtime,
+// letting an attacker time responses to enumerate registered emails.
+const DUMMY_PASSWORD_HASH = "$2b$12$0APBnsAoVXPA3KuUG55K3e//22j27ckpDNZu8LeeyOJ9lzBQPbi8e";
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -106,11 +113,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           include: { organization: { select: { isActive: true } } },
         });
 
-        if (!user || !user.passwordHash) return null;
-        if (user.organizationId && user.organization?.isActive === false) return null;
-
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) return null;
+        // Always run bcrypt.compare, even for a nonexistent user or a
+        // suspended org, against a dummy hash — otherwise those cases
+        // return near-instantly while a real "wrong password" takes
+        // bcrypt's full runtime, letting response timing reveal which
+        // emails are registered.
+        const orgSuspended = !!user?.organizationId && user.organization?.isActive === false;
+        const isValid = await bcrypt.compare(
+          password,
+          user?.passwordHash && !orgSuspended ? user.passwordHash : DUMMY_PASSWORD_HASH
+        );
+        if (!user || !user.passwordHash || orgSuspended || !isValid) return null;
 
         if (user.totpEnabled) {
           if (!totpCode) throw new TwoFactorRequiredSignin();

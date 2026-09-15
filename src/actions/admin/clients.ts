@@ -42,6 +42,7 @@ export async function createClient(formData: FormData) {
       name: orgName,
       slug: finalSlug,
       industry: orgIndustry,
+      n8nWebhookSecret: generateWebhookSecret(),
       users: {
         create: {
           name: userName,
@@ -112,6 +113,25 @@ export async function updateClientStatus(orgId: string, isActive: boolean) {
   revalidatePath("/admin/clients");
   revalidatePath(`/admin/clients/${orgId}`);
   return { success: true };
+}
+
+export async function rotateOrgWebhookSecret(orgId: string) {
+  const session = await auth();
+  if (!session || !isAdmin(session.user.role)) throw new Error("No autorizado");
+
+  const newSecret = generateWebhookSecret();
+  await prisma.organization.update({ where: { id: orgId }, data: { n8nWebhookSecret: newSecret } });
+
+  await logAudit({
+    userId: session.user.id,
+    organizationId: orgId,
+    action: "client.webhook_secret_rotate",
+    resource: "Organization",
+    resourceId: orgId,
+  });
+
+  revalidatePath(`/admin/clients/${orgId}`);
+  return { success: true, secret: newSecret };
 }
 
 export async function assignAutomation(
