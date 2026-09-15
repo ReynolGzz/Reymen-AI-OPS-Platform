@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { createTestOrg, createTestUser, fakeSession, cleanupOrg } from "@/test/helpers";
+import { createTestOrg, fakeSession, cleanupOrg } from "@/test/helpers";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
